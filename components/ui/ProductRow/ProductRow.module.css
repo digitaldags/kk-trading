@@ -1,0 +1,73 @@
+.row {
+  composes: row from "../shared/row.module.css";
+}
+
+.thumb {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: 56px;
+  height: 56px;
+  overflow: hidden;
+  border-radius: var(--r-sm);
+}
+
+.image {
+  object-fit: cover;
+}
+
+.titleRow {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
+.tag {
+  padding: 2px 8px;
+  border-radius: var(--r-tag);
+  background: var(--tertiary-container);
+  color: var(--on-tertiary-container);
+}
+
+.price {
+  min-width: 88px;
+  color: var(--on-surface);
+  font-weight: 500;
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+}
+
+@media (max-width: 640px) {
+  .row {
+    grid-template-columns: 56px minmax(0, 1fr) auto;
+    grid-template-areas:
+      "thumb main actions"
+      "thumb price status";
+    row-gap: 4px;
+  }
+
+  .thumb {
+    grid-area: thumb;
+  }
+
+  .mainArea {
+    grid-area: main;
+  }
+
+  .actionsArea {
+    grid-area: actions;
+  }
+
+  .price {
+    grid-area: price;
+    min-width: 0;
+    text-align: left;
+  }
+
+  .status {
+    grid-area: status;
+    justify-self: end;
+    margin-right: 8px;
+  }
+}

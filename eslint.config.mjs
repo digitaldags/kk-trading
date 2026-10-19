@@ -6,6 +6,15 @@ import prettier from "eslint-config-prettier/flat";
 const eslintConfig = defineConfig([
   ...nextVitals,
   ...nextTs,
+  {
+    rules: {
+      // Allow `const { omitted, ...rest } = props` to drop props before spreading.
+      "@typescript-eslint/no-unused-vars": [
+        "warn",
+        { ignoreRestSiblings: true },
+      ],
+    },
+  },
   // Keep last: turns off rules that conflict with Prettier.
   prettier,
   // Override default ignores of eslint-config-next.
