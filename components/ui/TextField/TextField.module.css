@@ -1,0 +1,104 @@
+.field {
+  display: grid;
+  gap: 6px;
+  min-width: 0;
+}
+
+.label,
+.hint {
+  color: var(--on-surface-var);
+}
+
+.error {
+  color: var(--err);
+}
+
+.control {
+  position: relative;
+  min-width: 0;
+}
+
+.input {
+  display: block;
+  width: 100%;
+  min-height: 52px;
+  margin: 0;
+  /* 13px + 1px border keeps the 52px height with a 24px line. */
+  padding: 13px 16px;
+  border: 1px solid var(--outline);
+  border-radius: var(--r-xs);
+  background: transparent;
+  color: var(--on-surface);
+}
+
+.input::placeholder {
+  color: var(--on-surface-var);
+}
+
+.input:hover {
+  border-color: var(--on-surface);
+}
+
+.input:focus,
+.input:focus-visible {
+  outline: none;
+  /* A 2px border on focus; padding shrinks by 1px so text doesn't move. */
+  padding: 12px 15px;
+  border: 2px solid var(--primary);
+}
+
+.invalid,
+.invalid:hover,
+.invalid:focus,
+.invalid:focus-visible {
+  border-color: var(--err);
+}
+
+.multiline {
+  min-height: 104px;
+  resize: vertical;
+}
+
+.select {
+  appearance: none;
+  padding-right: 48px;
+  cursor: pointer;
+}
+
+.select:focus,
+.select:focus-visible {
+  padding-right: 47px;
+}
+
+.select option {
+  background: var(--surface-high);
+  color: var(--on-surface);
+}
+
+.trailingIcon {
+  position: absolute;
+  top: 50%;
+  right: 12px;
+  transform: translateY(-50%);
+  color: var(--on-surface-var);
+  pointer-events: none;
+}
+
+.prefix {
+  position: absolute;
+  top: 50%;
+  left: 16px;
+  transform: translateY(-50%);
+  color: var(--on-surface-var);
+  pointer-events: none;
+}
+
+.price {
+  padding-left: 34px;
+  font-variant-numeric: tabular-nums;
+}
+
+.price:focus,
+.price:focus-visible {
+  padding-left: 33px;
+}

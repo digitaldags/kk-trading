@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import type { CSSProperties } from "react";
 import { Icon } from "@/components/ui/Icon";
+import { ComponentDemos } from "./Demos";
 import styles from "./styleguide.module.css";
 
 // Temporary reference page for checking tokens against Figma. Removed in ticket 16.
@@ -75,7 +76,16 @@ const TEXT_STYLES: { figma: string; className: string }[] = [
   { figma: "Label/Tag", className: "t-label-tag" },
 ];
 
-const RADII = ["r-sm", "r-md", "r-lg", "r-xl", "r-full"];
+const RADII = [
+  "r-xs",
+  "r-tag",
+  "r-sm",
+  "r-md",
+  "r-avatar",
+  "r-lg",
+  "r-xl",
+  "r-full",
+];
 const SHADOWS = ["shadow-1", "shadow-3"];
 const ICONS = [
   "storefront",
@@ -184,6 +194,8 @@ export default function StyleguidePage() {
           </li>
         </ul>
       </section>
+
+      <ComponentDemos />
     </main>
   );
 }

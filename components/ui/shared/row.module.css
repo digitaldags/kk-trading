@@ -1,0 +1,38 @@
+/* Admin list row layout shared by ProductRow and CategoryRow. */
+.row {
+  display: grid;
+  grid-template-columns: 56px minmax(0, 1fr) auto auto auto;
+  align-items: center;
+  gap: 16px;
+  padding: 12px 8px 12px 16px;
+  border-bottom: 1px solid var(--outline-var);
+}
+
+/* No divider after the last row, whether rows sit directly in a container or in <li>s. */
+:not(li) > .row:last-child,
+li:last-child > .row {
+  border-bottom: 0;
+}
+
+.main {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.title {
+  color: var(--on-surface);
+  font-weight: 500;
+}
+
+.subtitle {
+  overflow: hidden;
+  color: var(--on-surface-var);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.actions {
+  display: flex;
+}

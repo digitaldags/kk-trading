@@ -1,0 +1,51 @@
+.field {
+  display: grid;
+  gap: 6px;
+  min-width: 0;
+}
+
+.label {
+  color: var(--on-surface-var);
+}
+
+.group {
+  display: flex;
+  overflow: hidden;
+  border: 1px solid var(--outline);
+  border-radius: var(--r-full);
+}
+
+.segment {
+  composes: stateLayer from "../shared/stateLayer.module.css";
+  display: inline-flex;
+  flex: 1;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  min-width: 0;
+  height: 40px;
+  padding: 0 8px;
+  border: 0;
+  background: transparent;
+  color: var(--on-surface);
+  white-space: nowrap;
+}
+
+.segment + .segment {
+  border-left: 1px solid var(--outline);
+}
+
+.segment:focus-visible {
+  outline-offset: -3px;
+}
+
+.selected {
+  background: var(--secondary-container);
+  color: var(--on-secondary-container);
+}
+
+@media (max-width: 420px) {
+  .segment > span[aria-hidden] {
+    display: none;
+  }
+}

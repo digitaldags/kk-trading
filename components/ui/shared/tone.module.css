@@ -1,0 +1,15 @@
+/* Background and on-color pairs for each category tone. */
+.secondary {
+  background: var(--secondary-container);
+  color: var(--on-secondary-container);
+}
+
+.tertiary {
+  background: var(--tertiary-container);
+  color: var(--on-tertiary-container);
+}
+
+.highest {
+  background: var(--surface-highest);
+  color: var(--on-surface);
+}

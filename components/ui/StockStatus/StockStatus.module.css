@@ -1,0 +1,25 @@
+.status {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  flex: none;
+  height: 24px;
+  padding: 0 10px 0 6px;
+  border-radius: var(--r-full);
+  white-space: nowrap;
+}
+
+.in_stock {
+  background: var(--ok-c);
+  color: var(--ok);
+}
+
+.low_stock {
+  background: var(--warn-c);
+  color: var(--warn);
+}
+
+.out_of_stock {
+  background: var(--err-c);
+  color: var(--err);
+}

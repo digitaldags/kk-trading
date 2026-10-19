@@ -3,6 +3,7 @@ import { Roboto, Roboto_Flex } from "next/font/google";
 import "./tokens.css";
 import "./typography.css";
 import "./globals.css";
+import { SnackbarProvider } from "@/components/ui/Snackbar";
 
 const roboto = Roboto({
   weight: ["400", "500"],
@@ -39,7 +40,9 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
         />
         <link rel="stylesheet" href={MATERIAL_SYMBOLS_URL} />
       </head>
-      <body>{children}</body>
+      <body>
+        <SnackbarProvider>{children}</SnackbarProvider>
+      </body>
     </html>
   );
 }

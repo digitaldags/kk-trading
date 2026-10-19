@@ -1,0 +1,21 @@
+.iconButton {
+  composes: stateLayer from "../shared/stateLayer.module.css";
+  display: inline-grid;
+  place-items: center;
+  flex: none;
+  width: 40px;
+  height: 40px;
+  padding: 0;
+  border: 0;
+  border-radius: var(--r-full);
+  background: transparent;
+  color: var(--on-surface-var);
+}
+
+.danger {
+  color: var(--err);
+}
+
+.primary {
+  color: var(--primary);
+}

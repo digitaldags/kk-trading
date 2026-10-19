@@ -1,0 +1,22 @@
+.banner {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 14px 16px;
+  border-radius: var(--r-lg);
+}
+
+.info {
+  background: var(--secondary-container);
+  color: var(--on-secondary-container);
+}
+
+.warn {
+  background: var(--warn-c);
+  color: var(--warn);
+}
+
+.text {
+  flex: 1;
+  min-width: 0;
+}
