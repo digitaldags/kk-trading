@@ -15,6 +15,7 @@
     "db:generate": "drizzle-kit generate",
     "db:migrate": "tsx scripts/db-migrate.ts",
     "db:seed": "tsx scripts/db-seed.ts",
+    "db:admin": "tsx scripts/db-admin.ts",
     "db:studio": "drizzle-kit studio",
     "icons:fetch": "tsx scripts/icons-fetch.ts"
   },
@@ -23,6 +24,7 @@
     "@node-rs/argon2": "^2.2.2",
     "@vercel/blob": "^2.8.2",
     "drizzle-orm": "^0.45.4",
+    "jose": "^6.2.13",
     "next": "16.4.1",
     "react": "19.3.0",
     "react-dom": "19.3.0",

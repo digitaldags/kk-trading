@@ -64,6 +64,25 @@ export const storeSettingsInputSchema = z.object({
 export type StoreSettingsInput = z.input<typeof storeSettingsInputSchema>;
 export type StoreSettingsValues = z.output<typeof storeSettingsInputSchema>;
 
+/**
+ * Admin sign-in. The email is only matched against stored accounts, so it isn't checked
+ * for format (an account can be named "admin").
+ */
+export const signInSchema = z.object({
+  email: requiredText(254, "Enter your email."),
+  password: z
+    .string("Enter your password.")
+    .min(1, "Enter your password.")
+    .max(1024, maxLength(1024)),
+});
+
+export type SignInInput = z.input<typeof signInSchema>;
+
+/** Sign-in rate limit: failures counted over this window, per email and per IP. */
+export const LOGIN_WINDOW_MS = 15 * 60 * 1000;
+export const MAX_FAILURES_PER_EMAIL = 5;
+export const MAX_FAILURES_PER_IP = 20;
+
 /** Record ids. Anything else (a tampered form, an old link) is treated as not found. */
 export const idSchema = z.uuid();
 

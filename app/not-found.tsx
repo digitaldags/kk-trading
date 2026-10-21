@@ -1,7 +1,7 @@
 import { Button } from "@/components/ui/Button";
 import { Icon } from "@/components/ui/Icon";
 import { cx } from "@/components/ui/shared/cx";
-import styles from "./not-found.module.css";
+import styles from "./status-page.module.css";
 
 // Prerendered at build time, so it reads nothing from the database.
 export default function NotFound() {

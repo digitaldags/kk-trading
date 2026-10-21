@@ -165,6 +165,16 @@ describe("settings, admin users and login attempts", () => {
     expect(admin?.email).toBe(TEST_ADMIN.email);
   });
 
+  it("adds an admin with the email lowercased", async () => {
+    const repo = createAdminUserRepo(db);
+    const added = await repo.insert({
+      email: " Second@Example.com ",
+      passwordHash: "$argon2id$second",
+    });
+    expect(added.email).toBe("second@example.com");
+    expect((await repo.findByEmail("SECOND@example.com"))?.id).toBe(added.id);
+  });
+
   it("moves passwordChangedAt forward when the password changes", async () => {
     const repo = createAdminUserRepo(db);
     const admin = await repo.findByEmail(TEST_ADMIN.email);

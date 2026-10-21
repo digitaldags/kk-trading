@@ -1,7 +1,15 @@
-import { categoryRepo, productRepo, settingsRepo } from "@/lib/repositories";
+import {
+  adminUserRepo,
+  categoryRepo,
+  loginAttemptRepo,
+  productRepo,
+  settingsRepo,
+} from "@/lib/repositories";
+import { createAuthService } from "./authService";
 import { createCatalogService } from "./catalogService";
 import { createCategoryService } from "./categoryService";
 import { vercelBlobImageStore } from "./imageStore";
+import { argon2Passwords } from "./passwords";
 import { createProductService } from "./productService";
 import { createSettingsService } from "./settingsService";
 
@@ -24,4 +32,10 @@ export const categoryService = createCategoryService({
 
 export const settingsService = createSettingsService({
   settings: settingsRepo,
+});
+
+export const authService = createAuthService({
+  admins: adminUserRepo,
+  attempts: loginAttemptRepo,
+  passwords: argon2Passwords,
 });

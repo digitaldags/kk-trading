@@ -22,6 +22,8 @@ type ButtonAsLink = CommonProps & {
   href: string;
   target?: string;
   rel?: string;
+  /** Set to false for links most visitors won't follow, such as admin. */
+  prefetch?: boolean;
 };
 
 export type ButtonProps = ButtonAsButton | ButtonAsLink;

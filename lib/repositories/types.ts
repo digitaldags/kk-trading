@@ -78,6 +78,8 @@ export interface AdminUserRepo {
   /** Case-insensitive. */
   findByEmail(email: string): Promise<AdminUser | null>;
   findById(id: string): Promise<AdminUser | null>;
+  /** The email is stored lowercased and trimmed. */
+  insert(values: Pick<AdminUser, "email" | "passwordHash">): Promise<AdminUser>;
   /** Also sets `passwordChangedAt` to now, which signs out older sessions. */
   updatePassword(id: string, passwordHash: string): Promise<AdminUser | null>;
 }

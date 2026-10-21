@@ -21,6 +21,15 @@ export function createAdminUserRepo(db: Db): AdminUserRepo {
       return row ?? null;
     },
 
+    async insert({ email, passwordHash }) {
+      const [row] = await db
+        .insert(adminUsers)
+        .values({ email: email.trim().toLowerCase(), passwordHash })
+        .returning();
+      if (!row) throw new Error("Inserting the admin returned no row.");
+      return row;
+    },
+
     async updatePassword(id, passwordHash) {
       const [row] = await db
         .update(adminUsers)

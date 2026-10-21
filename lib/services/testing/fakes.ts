@@ -1,6 +1,14 @@
-import type { Category, Product, StoreSettings } from "@/lib/domain/types";
 import type {
+  AdminUser,
+  Category,
+  Product,
+  StoreSettings,
+} from "@/lib/domain/types";
+import type {
+  AdminUserRepo,
   CategoryRepo,
+  LoginAttempt,
+  LoginAttemptRepo,
   ProductRepo,
   SettingsRepo,
 } from "@/lib/repositories/types";
@@ -185,6 +193,74 @@ export function createFakeStore() {
     },
   };
 
+  /** The fake clock for admins and login attempts. Move it with `clock.set()`. */
+  let now = new Date("2026-10-21T08:00:00Z");
+  const clock = {
+    now: () => new Date(now),
+    set(date: Date) {
+      now = new Date(date);
+    },
+    advance(ms: number) {
+      now = new Date(now.getTime() + ms);
+    },
+  };
+
+  const admins = new Map<string, AdminUser>();
+  const adminUserRepo: AdminUserRepo = {
+    async findByEmail(email) {
+      const wanted = email.trim().toLowerCase();
+      return [...admins.values()].find((a) => a.email === wanted) ?? null;
+    },
+    async findById(id) {
+      return admins.get(id) ?? null;
+    },
+    async insert({ email, passwordHash }) {
+      const admin: AdminUser = {
+        id: newId(),
+        email: email.trim().toLowerCase(),
+        passwordHash,
+        createdAt: clock.now(),
+        passwordChangedAt: clock.now(),
+      };
+      admins.set(admin.id, admin);
+      return admin;
+    },
+    async updatePassword(id, passwordHash) {
+      const admin = admins.get(id);
+      if (!admin) return null;
+      const updated = {
+        ...admin,
+        passwordHash,
+        passwordChangedAt: clock.now(),
+      };
+      admins.set(id, updated);
+      return updated;
+    },
+  };
+
+  const loginAttempts: (LoginAttempt & { createdAt: Date })[] = [];
+  const countFailures = (match: (a: LoginAttempt) => boolean, since: Date) =>
+    loginAttempts.filter(
+      (a) => !a.succeeded && a.createdAt >= since && match(a),
+    ).length;
+  const loginAttemptRepo: LoginAttemptRepo = {
+    async record({ email, ip, succeeded }) {
+      loginAttempts.push({
+        email: email.trim().toLowerCase(),
+        ip,
+        succeeded,
+        createdAt: clock.now(),
+      });
+    },
+    async countFailuresByEmail(email, since) {
+      const wanted = email.trim().toLowerCase();
+      return countFailures((a) => a.email === wanted, since);
+    },
+    async countFailuresByIp(ip, since) {
+      return countFailures((a) => a.ip === ip, since);
+    },
+  };
+
   /** Records which images were deleted. */
   const imageStore: ImageStore & { deleted: string[] } = {
     deleted: [],
@@ -197,6 +273,10 @@ export function createFakeStore() {
     categoryRepo,
     productRepo,
     settingsRepo,
+    adminUserRepo,
+    loginAttemptRepo,
+    loginAttempts,
+    clock,
     imageStore,
     failNextWrite(error = new Error("Simulated database failure")) {
       failNext = error;

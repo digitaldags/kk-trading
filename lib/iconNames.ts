@@ -23,6 +23,8 @@ const UI_ICONS = [
   "grid_view",
   "info",
   "location_on",
+  "lock",
+  "logout",
   "mail",
   "manage_accounts",
   "payments",

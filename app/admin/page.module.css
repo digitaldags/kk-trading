@@ -1,0 +1,29 @@
+.main {
+  display: grid;
+  place-items: center;
+  min-height: 100dvh;
+  padding: 32px max(16px, env(safe-area-inset-right, 0px)) 32px
+    max(16px, env(safe-area-inset-left, 0px));
+}
+
+.panel {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  width: min(400px, 100%);
+  padding: 32px 28px;
+  border-radius: var(--r-xl);
+  background: var(--surface-low);
+}
+
+.lead {
+  color: var(--on-surface-var);
+  overflow-wrap: anywhere;
+}
+
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 8px;
+}

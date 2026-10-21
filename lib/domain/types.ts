@@ -55,3 +55,6 @@ export type AdminUser = {
   createdAt: Date;
   passwordChangedAt: Date;
 };
+
+/** The signed-in admin, as pages and actions see it. Never carries the password hash. */
+export type AdminSession = Pick<AdminUser, "id" | "email">;
