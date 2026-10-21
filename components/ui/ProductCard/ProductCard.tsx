@@ -27,7 +27,7 @@ export type ProductCardProps = {
   icon: string;
   /** The category's position, which picks the placeholder tone. */
   toneIndex: number;
-  /** Makes the whole card a link. */
+  /** Makes the whole card a link (it doesn't scroll the page when followed). */
   href?: string;
   /** `sizes` for the photo. Defaults to the storefront grid's 1 to 4 columns. */
   sizes?: string;
@@ -76,7 +76,9 @@ export function ProductCard({
         <p className={cx(styles.category, "t-label-overline")}>{category}</p>
         <Heading className={cx(styles.name, "t-title-medium")}>
           {href ? (
-            <Link href={href} className={styles.link}>
+            // From the grid the product opens as a dialog over the page, so keep the scroll
+            // position. A direct visit is a full load, which starts at the top anyway.
+            <Link href={href} scroll={false} className={styles.link}>
               {name}
             </Link>
           ) : (

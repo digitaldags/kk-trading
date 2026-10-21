@@ -19,6 +19,11 @@ export function categoryHref(slug: string): string {
   return `${buildCatalogUrl({ category: slug })}#catalog`;
 }
 
+/** A product's own page. From the storefront grid it opens as a dialog instead. */
+export function productHref(slug: string): string {
+  return `/products/${encodeURIComponent(slug)}`;
+}
+
 export function countLabel(n: number, one: string, many: string): string {
   return `${n} ${n === 1 ? one : many}`;
 }

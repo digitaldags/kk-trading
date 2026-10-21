@@ -34,14 +34,19 @@ export const metadata: Metadata = {
     "Office furniture and fitness gear for homes, offices and training spaces.",
 };
 
-export default function RootLayout({ children }: LayoutProps<"/">) {
+// `modal` is the @modal slot: the product dialog when a card is followed from the grid
+// (app/@modal/(.)products/[slug]), otherwise nothing.
+export default function RootLayout({ children, modal }: LayoutProps<"/">) {
   return (
     <html
       lang="en"
       className={`${roboto.variable} ${robotoFlex.variable} ${materialSymbols.variable}`}
     >
       <body id="top">
-        <SnackbarProvider>{children}</SnackbarProvider>
+        <SnackbarProvider>
+          {children}
+          {modal}
+        </SnackbarProvider>
       </body>
     </html>
   );

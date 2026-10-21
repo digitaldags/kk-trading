@@ -60,6 +60,28 @@ describe("catalogService.getProductBySlug", () => {
     expect(product?.category.slug).toBe("office");
     expect(await service.getProductBySlug("missing")).toBeNull();
   });
+
+  it("treats a malformed slug as not found without querying", async () => {
+    let calls = 0;
+    const find = store.productRepo.findBySlug;
+    store.productRepo.findBySlug = async (slug) => {
+      calls += 1;
+      return find(slug);
+    };
+    for (const slug of [
+      "",
+      "Ergonomic-Mesh-Chair",
+      "a b",
+      "-chair",
+      "x".repeat(101),
+    ]) {
+      expect(await service.getProductBySlug(slug)).toBeNull();
+    }
+    expect(calls).toBe(0);
+    expect(
+      await service.getProductBySlug("ergonomic-mesh-chair"),
+    ).not.toBeNull();
+  });
 });
 
 describe("catalogService input from the URL", () => {

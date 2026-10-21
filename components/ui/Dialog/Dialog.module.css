@@ -60,6 +60,12 @@
   color: var(--on-surface-var);
 }
 
+.bare {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+}
+
 .actions {
   display: flex;
   flex-wrap: wrap;

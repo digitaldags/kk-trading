@@ -1,0 +1,120 @@
+.detail {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+}
+
+.media {
+  position: relative;
+  display: grid;
+  place-items: center;
+  aspect-ratio: 1 / 1;
+  overflow: hidden;
+}
+
+.media > span {
+  opacity: 0.9;
+}
+
+.image {
+  object-fit: cover;
+}
+
+.out {
+  filter: grayscale(0.7);
+  opacity: 0.75;
+}
+
+.info {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  min-width: 0;
+  padding: 24px;
+}
+
+.top {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 40px;
+}
+
+.action {
+  display: flex;
+  flex: none;
+}
+
+.category {
+  flex: 1;
+  min-width: 0;
+  color: var(--on-surface-var);
+}
+
+.priceRow {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px;
+}
+
+.price {
+  font-variant-numeric: tabular-nums;
+}
+
+.muted {
+  color: var(--on-surface-var);
+}
+
+/* Keep the line breaks typed in admin. */
+.description {
+  white-space: pre-line;
+}
+
+.ask {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 12px 14px;
+  border-radius: var(--r-lg);
+  background: var(--surface-c);
+}
+
+.askTitle {
+  color: var(--on-surface);
+}
+
+.askList {
+  display: grid;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.askRow {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+
+.askIcon {
+  color: var(--primary);
+}
+
+.askValue {
+  flex: 1;
+  min-width: 0;
+  color: var(--on-surface);
+  overflow-wrap: anywhere;
+  text-decoration: none;
+}
+
+.askValue:hover {
+  text-decoration: underline;
+}
+
+@media (max-width: 640px) {
+  .detail {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}

@@ -2,6 +2,7 @@ import { Icon } from "@/components/ui/Icon";
 import { cx } from "@/components/ui/shared/cx";
 import type { StoreSettings } from "@/lib/domain/types";
 import styles from "./Contact.module.css";
+import { mailtoHref, telHref } from "./contactHref";
 import { CopyButton } from "./CopyButton";
 
 type ContactProps = {
@@ -34,7 +35,7 @@ export function Contact({ settings }: ContactProps) {
                 icon="call"
                 label="Phone"
                 value={phone}
-                href={`tel:${phone.replace(/[^\d+]/g, "")}`}
+                href={telHref(phone)}
               />
             )}
             {email && (
@@ -43,7 +44,7 @@ export function Contact({ settings }: ContactProps) {
                 icon="mail"
                 label="Email"
                 value={email}
-                href={`mailto:${email}`}
+                href={mailtoHref(email)}
               />
             )}
             {address && (

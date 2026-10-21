@@ -70,6 +70,16 @@ export const idSchema = z.uuid();
 export const isId = (value: unknown): value is string =>
   idSchema.safeParse(value).success;
 
+/** Slugs as `slugify` makes them, with `uniqueSlug`'s `-2` suffixes: "rubber-hex-dumbbells-pair". */
+export const slugSchema = z
+  .string()
+  .max(100)
+  .regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/);
+
+/** Slugs come from the URL, so anything else is treated as not found. */
+export const isSlug = (value: unknown): value is string =>
+  slugSchema.safeParse(value).success;
+
 export const MAX_SEARCH_LENGTH = 100;
 
 /** Storefront filters come from the URL, so malformed values are dropped, not rejected. */

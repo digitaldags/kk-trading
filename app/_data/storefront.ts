@@ -32,6 +32,14 @@ export async function getProducts(filter: StorefrontFilter) {
   return catalogService.listForStorefront(filter);
 }
 
+/** One product with its category, or null when the slug is unknown or malformed. */
+export async function getProduct(slug: string) {
+  "use cache";
+  cacheTag(CATALOG_TAG);
+  cacheLife("hours");
+  return catalogService.getProductBySlug(slug);
+}
+
 /** For the footer. Cached for a day; `cacheComponents` doesn't allow `new Date()` in a render. */
 export async function getCurrentYear() {
   "use cache";

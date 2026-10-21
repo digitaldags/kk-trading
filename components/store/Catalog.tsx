@@ -7,6 +7,7 @@ import type {
 } from "@/lib/domain/types";
 import styles from "./Catalog.module.css";
 import { CatalogFilters } from "./CatalogFilters";
+import { productHref } from "./catalogUrl";
 
 type CatalogProps = {
   categories: CategoryWithCount[];
@@ -64,6 +65,7 @@ export function Catalog({
                     imageUrl={p.imageUrl}
                     icon={p.category.icon}
                     toneIndex={toneIndex.get(p.categoryId) ?? 0}
+                    href={productHref(p.slug)}
                   />
                 </li>
               ))}

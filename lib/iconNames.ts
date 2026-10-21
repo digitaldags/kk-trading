@@ -8,6 +8,7 @@ import { CATEGORY_ICONS } from "@/lib/domain/icons";
  */
 const UI_ICONS = [
   "add",
+  "arrow_back",
   "arrow_forward",
   "block",
   "call",

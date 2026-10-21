@@ -10,6 +10,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
   SNACKBAR_DURATION_MS,
   SnackbarProvider,
+  SnackbarRegion,
   useSnackbar,
 } from "./Snackbar";
 
@@ -61,5 +62,40 @@ describe("Snackbar", () => {
 
     act(() => vi.advanceTimersByTime(SNACKBAR_DURATION_MS));
     expect(region).toBeEmptyDOMElement();
+  });
+
+  it("shows messages in the newest SnackbarRegion while one is mounted", () => {
+    function Page({ dialogOpen }: { dialogOpen: boolean }) {
+      return (
+        <SnackbarProvider>
+          <Trigger messages={["Copied 0917 000 0000"]} />
+          {dialogOpen && (
+            <section aria-label="Dialog">
+              <SnackbarRegion />
+            </section>
+          )}
+        </SnackbarProvider>
+      );
+    }
+
+    const { rerender } = render(<Page dialogOpen />);
+    fireEvent.click(screen.getByRole("button", { name: "Show" }));
+    const [inDialog, onPage] = screen.getAllByRole("status");
+    expect(screen.getByRole("region", { name: "Dialog" })).toContainElement(
+      inDialog ?? null,
+    );
+    expect(inDialog).toHaveTextContent("Copied 0917 000 0000");
+    expect(onPage).toBeEmptyDOMElement();
+
+    // Closing the dialog hands the message back to the page.
+    rerender(<Page dialogOpen={false} />);
+    expect(screen.getByRole("status")).toHaveTextContent(
+      "Copied 0917 000 0000",
+    );
+  });
+
+  it("renders no region outside a provider", () => {
+    const { container } = render(<SnackbarRegion />);
+    expect(container).toBeEmptyDOMElement();
   });
 });

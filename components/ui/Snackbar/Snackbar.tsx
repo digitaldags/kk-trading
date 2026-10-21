@@ -5,6 +5,7 @@ import {
   useCallback,
   useContext,
   useEffect,
+  useId,
   useMemo,
   useRef,
   useState,
@@ -23,10 +24,22 @@ type SnackbarContextValue = {
   show: (text: string) => void;
 };
 
+type RegionContextValue = {
+  current: Message | undefined;
+  /** The region that shows messages: the newest one mounted, else the page's own. */
+  activeRegion: string;
+  /** Returns the cleanup that removes the region again. */
+  register: (id: string) => () => void;
+};
+
+const PAGE_REGION = "page";
+
 const SnackbarContext = createContext<SnackbarContextValue | null>(null);
+const RegionContext = createContext<RegionContextValue | null>(null);
 
 export function SnackbarProvider({ children }: { children: ReactNode }) {
   const [queue, setQueue] = useState<Message[]>([]);
+  const [regions, setRegions] = useState<string[]>([]);
   const nextId = useRef(0);
   const current = queue[0];
 
@@ -34,6 +47,11 @@ export function SnackbarProvider({ children }: { children: ReactNode }) {
     nextId.current += 1;
     const id = nextId.current;
     setQueue((q) => [...q, { id, text }]);
+  }, []);
+
+  const register = useCallback((id: string) => {
+    setRegions((r) => [...r, id]);
+    return () => setRegions((r) => r.filter((x) => x !== id));
   }, []);
 
   useEffect(() => {
@@ -46,22 +64,53 @@ export function SnackbarProvider({ children }: { children: ReactNode }) {
   }, [current]);
 
   const value = useMemo(() => ({ show }), [show]);
+  const region = useMemo(
+    () => ({
+      current,
+      activeRegion: regions[regions.length - 1] ?? PAGE_REGION,
+      register,
+    }),
+    [current, regions, register],
+  );
 
   return (
     <SnackbarContext.Provider value={value}>
-      {children}
-      {/* Always mounted so screen readers announce each new message. */}
-      <div role="status" aria-live="polite" className={styles.region}>
-        {current && (
-          <div
-            key={current.id}
-            className={cx(styles.snackbar, "t-body-medium")}
-          >
-            {current.text}
-          </div>
-        )}
-      </div>
+      <RegionContext.Provider value={region}>
+        {children}
+        <Region id={PAGE_REGION} />
+      </RegionContext.Provider>
     </SnackbarContext.Provider>
+  );
+}
+
+/**
+ * A place for snackbars inside a modal `<dialog>`. The dialog sits in the top layer and
+ * makes the page inert, so the page's own region would be hidden behind it. While this is
+ * mounted, messages show here instead. Renders nothing outside a `SnackbarProvider`.
+ */
+export function SnackbarRegion() {
+  const context = useContext(RegionContext);
+  const id = useId();
+  const register = context?.register;
+
+  useEffect(() => register?.(id), [register, id]);
+
+  return context ? <Region id={id} /> : null;
+}
+
+function Region({ id }: { id: string }) {
+  const context = useContext(RegionContext);
+  const message = context?.activeRegion === id ? context.current : undefined;
+
+  // Always mounted so screen readers announce each new message.
+  return (
+    <div role="status" aria-live="polite" className={styles.region}>
+      {message && (
+        <div key={message.id} className={cx(styles.snackbar, "t-body-medium")}>
+          {message.text}
+        </div>
+      )}
+    </div>
   );
 }
 

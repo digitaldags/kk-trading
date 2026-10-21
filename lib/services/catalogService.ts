@@ -1,4 +1,5 @@
 import {
+  isSlug,
   storefrontFilterSchema,
   type StorefrontFilter,
 } from "@/lib/domain/schemas";
@@ -29,7 +30,9 @@ export function createCatalogService(deps: {
       return deps.products.listWithCategory({ categoryId, q: q || undefined });
     },
 
-    getProductBySlug(slug: string): Promise<ProductWithCategory | null> {
+    /** The slug comes from the URL; a malformed one is not found rather than queried. */
+    async getProductBySlug(slug: string): Promise<ProductWithCategory | null> {
+      if (!isSlug(slug)) return null;
       return deps.products.findBySlug(slug);
     },
   };

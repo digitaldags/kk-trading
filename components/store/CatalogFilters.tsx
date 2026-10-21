@@ -52,14 +52,64 @@ export function CatalogFilters({
 
   useEffect(() => () => clearTimeout(timerRef.current), []);
 
-  function navigate(next: { category?: string | null; q?: string | null }) {
+  // A product opened while a filter change was still on its way (see handleResultsClick).
+  const productHrefRef = useRef<string | null>(null);
+  useEffect(() => {
+    const href = productHrefRef.current;
+    if (pending || !href) return;
+    productHrefRef.current = null;
+    router.push(href, { scroll: false });
+  }, [pending, router]);
+
+  function catalogUrl(next: { category?: string | null; q?: string | null }) {
     const current = new URLSearchParams(window.location.search);
-    const url = buildCatalogUrl({
+    return buildCatalogUrl({
       category:
         next.category !== undefined ? next.category : current.get("category"),
       q: next.q !== undefined ? next.q : current.get("q"),
     });
+  }
+
+  function navigate(next: { category?: string | null; q?: string | null }) {
+    // A debounced search firing after the visitor left the storefront (e.g. opened a
+    // product) would replace that page's history entry.
+    if (window.location.pathname !== "/") return;
+    const url = catalogUrl(next);
     startTransition(() => router.replace(url, { scroll: false }));
+  }
+
+  /**
+   * A product link clicked while a search is still debouncing or a filter is still
+   * loading: apply the filter first, then open the product. Otherwise the product's
+   * navigation cancels the filter (or the debounced search replaces the product's URL),
+   * and closing the dialog goes back past the search. Runs in the capture phase, before
+   * the link's own handler, which skips prevented clicks.
+   */
+  function handleResultsClick(event: MouseEvent<HTMLDivElement>) {
+    if (
+      event.button !== 0 ||
+      event.metaKey ||
+      event.ctrlKey ||
+      event.shiftKey ||
+      event.altKey
+    ) {
+      return;
+    }
+    const link =
+      event.target instanceof Element
+        ? event.target.closest<HTMLAnchorElement>("a[href^='/products/']")
+        : null;
+    const href = link?.getAttribute("href");
+    if (!href) return;
+
+    const url = catalogUrl({ q: inputRef.current?.value ?? null });
+    const applied = url === window.location.pathname + window.location.search;
+    if (applied && !pending) return;
+
+    event.preventDefault();
+    clearTimeout(timerRef.current);
+    productHrefRef.current = href;
+    if (!applied) startTransition(() => router.replace(url, { scroll: false }));
   }
 
   function selectCategory(event: MouseEvent<HTMLButtonElement>, slug: string) {
@@ -139,6 +189,7 @@ export function CatalogFilters({
       <div
         className={cx(styles.results, pending && styles.pending)}
         aria-busy={pending || undefined}
+        onClickCapture={handleResultsClick}
       >
         {children}
       </div>

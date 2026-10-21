@@ -10,16 +10,27 @@ import { ScrollShadow } from "./ScrollShadow";
 type AppBarProps = {
   storeName: string;
   categories: Pick<Category, "id" | "slug" | "name">[];
+  /**
+   * On the storefront the brand and Contact are same-page anchors, which keep the
+   * current filter. Elsewhere (a product page) they lead back to the storefront.
+   */
+  onStorefront?: boolean;
 };
 
-export function AppBar({ storeName, categories }: AppBarProps) {
+export function AppBar({
+  storeName,
+  categories,
+  onStorefront = true,
+}: AppBarProps) {
   return (
     <ScrollShadow className={styles.appBar}>
       <div className={cx("wrap", styles.inner)}>
         <a
-          href="#top"
+          href={onStorefront ? "#top" : "/"}
           className={styles.brand}
-          aria-label={`${storeName}, back to top`}
+          aria-label={
+            onStorefront ? `${storeName}, back to top` : `${storeName}, home`
+          }
         >
           <span className={styles.mark}>
             <Icon name="storefront" />
@@ -32,7 +43,7 @@ export function AppBar({ storeName, categories }: AppBarProps) {
               {c.name}
             </Button>
           ))}
-          <Button variant="text" href="#contact">
+          <Button variant="text" href={onStorefront ? "#contact" : "/#contact"}>
             Contact
           </Button>
         </nav>

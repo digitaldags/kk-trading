@@ -23,7 +23,9 @@ export default defineConfig({
   webServer: {
     // CI runs `pnpm build` first, then tests the production server.
     command: isCI ? "pnpm start" : "pnpm dev",
-    url: "http://localhost:3000",
+    // Wait on a page that renders without a database. Without one (CI), the storefront
+    // answers 500, which Playwright reads as "not ready" until it times out.
+    url: "http://localhost:3000/styleguide",
     reuseExistingServer: !isCI,
     timeout: 120_000,
   },

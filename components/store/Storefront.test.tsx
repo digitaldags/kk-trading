@@ -118,6 +118,16 @@ describe("Storefront", () => {
     ).not.toBeInTheDocument();
   });
 
+  it("links each card to its product page", () => {
+    renderStorefront();
+    expect(
+      screen.getByRole("link", { name: "Ergonomic mesh chair" }),
+    ).toHaveAttribute("href", "/products/chair");
+    expect(
+      screen.getByRole("link", { name: "Olympic barbell 20 kg" }),
+    ).toHaveAttribute("href", "/products/barbell");
+  });
+
   it("links the admin button and the brand", () => {
     renderStorefront();
     expect(screen.getByRole("link", { name: "Admin" })).toHaveAttribute(
