@@ -19,7 +19,21 @@ export default defineConfig({
     baseURL: "http://localhost:3000",
     trace: "on-first-retry",
   },
-  projects: [{ name: "chromium", use: { ...devices["Desktop Chrome"] } }],
+  projects: [
+    {
+      name: "chromium",
+      use: { ...devices["Desktop Chrome"] },
+      testIgnore: "admin-products.spec.ts",
+    },
+    // Runs after the rest: it adds and deletes products, which would change the counts
+    // the storefront specs check, and admin-auth signs out every session of the account.
+    {
+      name: "admin-products",
+      use: { ...devices["Desktop Chrome"] },
+      testMatch: "admin-products.spec.ts",
+      dependencies: ["chromium"],
+    },
+  ],
   webServer: {
     // CI runs `pnpm build` first, then tests the production server.
     command: isCI ? "pnpm start" : "pnpm dev",

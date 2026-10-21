@@ -6,6 +6,9 @@ import { STOCK_STATUSES } from "./stock";
 // Error copy follows the prototype (docs/reference/prototype.html).
 const PRICE_ERROR = "Enter a price of 0 or more, numbers only.";
 
+/** A product that was deleted (or never existed) by the time someone acted on it. */
+export const PRODUCT_NOT_FOUND = "That product no longer exists.";
+
 const maxLength = (max: number) => `Use ${max} characters or fewer.`;
 
 const text = (max: number) => z.string().trim().max(max, maxLength(max));

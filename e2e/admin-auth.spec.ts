@@ -34,6 +34,13 @@ test.beforeAll(() => {
   }
 });
 
+/** Signed in: the admin shell shows, on the Products tab. */
+async function expectProductsTab(page: Page) {
+  await expect(
+    page.getByRole("link", { name: "Products", exact: true }),
+  ).toHaveAttribute("aria-current", "page");
+}
+
 async function signIn(page: Page, email = EMAIL, password = PASSWORD) {
   await page.getByLabel("Email").fill(email);
   await page.getByLabel("Password").fill(password);
@@ -53,7 +60,7 @@ test("signed out, /admin goes to the sign-in page, and signing in lands on /admi
 
   await signIn(page);
   await expect(page).toHaveURL(/\/admin$/);
-  await expect(page.getByText(`Signed in as ${EMAIL}.`)).toBeVisible();
+  await expectProductsTab(page);
 
   const cookie = (await context.cookies()).find(
     (c) => c.name === SESSION_COOKIE,
@@ -169,7 +176,7 @@ test("an admin action called without a session answers 401", async ({
 
   // The real session is untouched.
   await page.reload();
-  await expect(page.getByText(`Signed in as ${EMAIL}.`)).toBeVisible();
+  await expectProductsTab(page);
 });
 
 test.describe("without JavaScript", () => {
@@ -180,7 +187,7 @@ test.describe("without JavaScript", () => {
     await expect(page).toHaveURL(/\/admin\/login/);
     await signIn(page);
     await expect(page).toHaveURL(/\/admin$/);
-    await expect(page.getByText(`Signed in as ${EMAIL}.`)).toBeVisible();
+    await expectProductsTab(page);
   });
 });
 

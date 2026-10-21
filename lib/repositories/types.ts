@@ -64,6 +64,8 @@ export interface ProductRepo {
   update(id: string, patch: ProductPatch): Promise<Product | null>;
   /** Returns the deleted product, or null if it didn't exist. */
   delete(id: string): Promise<Product | null>;
+  /** Whether any product shows this photo. */
+  isImageInUse(url: string): Promise<boolean>;
 }
 
 export type SettingsValues = Omit<StoreSettings, "updatedAt">;

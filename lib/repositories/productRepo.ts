@@ -90,5 +90,14 @@ export function createProductRepo(db: Db): ProductRepo {
         .returning();
       return row ?? null;
     },
+
+    async isImageInUse(url) {
+      const [row] = await db
+        .select({ id: products.id })
+        .from(products)
+        .where(eq(products.imageUrl, url))
+        .limit(1);
+      return row !== undefined;
+    },
   };
 }

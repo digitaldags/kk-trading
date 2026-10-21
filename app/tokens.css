@@ -52,6 +52,7 @@
   --r-avatar: 14px; /* category avatar */
   --r-tile-avatar: 20px; /* storefront category tile avatar */
   --r-search: 24px; /* storefront search pill */
+  --r-indicator: 3px; /* admin tab indicator, top corners */
 
   /* Elevation (Figma effect styles Elevation/1 and Elevation/3) */
   --shadow-1: 0 1px 2px rgba(0, 0, 0, 0.16), 0 1px 3px 1px rgba(0, 0, 0, 0.08);

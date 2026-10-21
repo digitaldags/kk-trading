@@ -180,6 +180,9 @@ export function createFakeStore() {
       products.delete(id);
       return existing;
     },
+    async isImageInUse(url) {
+      return [...products.values()].some((p) => p.imageUrl === url);
+    },
   };
 
   const settingsRepo: SettingsRepo = {

@@ -3,6 +3,16 @@ import type { NextConfig } from "next";
 const nextConfig: NextConfig = {
   cacheComponents: true,
   partialPrefetching: true,
+  images: {
+    // Product photos, uploaded to Vercel Blob under products/ (lib/domain/productImages.ts).
+    remotePatterns: [
+      {
+        protocol: "https",
+        hostname: "*.public.blob.vercel-storage.com",
+        pathname: "/products/**",
+      },
+    ],
+  },
   experimental: {
     // `unauthorized()`: requireAdmin() answers admin pages and actions without a
     // session with a 401 (lib/auth/requireAdmin.ts).

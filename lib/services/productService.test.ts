@@ -11,11 +11,11 @@ let service: ReturnType<typeof createProductService>;
 const logError = vi.fn();
 
 const PHOTO_A = {
-  url: "https://blob.example.com/products/a.webp",
+  url: "https://store.public.blob.vercel-storage.com/products/a.webp",
   pathname: "products/a.webp",
 };
 const PHOTO_B = {
-  url: "https://blob.example.com/products/b.webp",
+  url: "https://store.public.blob.vercel-storage.com/products/b.webp",
   pathname: "products/b.webp",
 };
 
@@ -198,7 +198,7 @@ describe("productService.update", () => {
     );
     expect(result).toMatchObject({
       ok: false,
-      formError: "This product no longer exists. Refresh the list.",
+      formError: "That product no longer exists.",
     });
   });
 });
@@ -230,12 +230,116 @@ describe("productService ids", () => {
     const remove = vi.spyOn(store.productRepo, "delete");
     expect(await service.update("abc", input())).toMatchObject({
       ok: false,
-      formError: "This product no longer exists. Refresh the list.",
+      formError: "That product no longer exists.",
     });
     expect(await service.delete("1; drop table products")).toMatchObject({
       ok: false,
     });
     expect(findById).not.toHaveBeenCalled();
     expect(remove).not.toHaveBeenCalled();
+  });
+});
+
+describe("product photos", () => {
+  it("refuses a photo that isn't in the Blob store's products folder", async () => {
+    const result = await service.create(
+      input({
+        image: { url: "https://evil.example/products/a.webp", pathname: "a" },
+      }),
+    );
+    expect(result).toEqual({
+      ok: false,
+      fieldErrors: { image: "Upload the photo again." },
+    });
+  });
+});
+
+describe("productService.get", () => {
+  it("finds a product by id, and treats a malformed id as not found", async () => {
+    const product = await created();
+    expect(await service.get(product.id)).toMatchObject({ id: product.id });
+    expect(await service.get("not-an-id")).toBeNull();
+    expect(
+      await service.get("00000000-0000-4000-8000-999999999999"),
+    ).toBeNull();
+  });
+});
+
+describe("productService.listForAdmin", () => {
+  beforeEach(async () => {
+    await store.addProduct({
+      name: "Ergonomic mesh chair",
+      categoryId: office.id,
+      keySpec: "Seat height 44–54 cm",
+      isSample: true,
+    });
+    await store.addProduct({
+      name: "Olympic barbell",
+      categoryId: gym.id,
+      keySpec: "20 kg",
+      description: "Chrome sleeves, mesh grip.",
+    });
+  });
+
+  it("lists every product with the totals", async () => {
+    const result = await service.listForAdmin();
+    expect(result.products.map((p) => p.name)).toEqual([
+      "Ergonomic mesh chair",
+      "Olympic barbell",
+    ]);
+    expect(result).toMatchObject({ totalCount: 2, sampleCount: 1 });
+    expect(result.products[0]?.category.name).toBe("Office equipment");
+  });
+
+  it("searches the name and key spec, not the description", async () => {
+    const bySpec = await service.listForAdmin({ q: "  SEAT height " });
+    expect(bySpec.products.map((p) => p.name)).toEqual([
+      "Ergonomic mesh chair",
+    ]);
+    // "mesh" is also in the barbell's description, which isn't searched.
+    const byName = await service.listForAdmin({ q: "mesh" });
+    expect(byName.products.map((p) => p.name)).toEqual([
+      "Ergonomic mesh chair",
+    ]);
+    // The totals don't depend on the search.
+    expect(await service.listForAdmin({ q: "nothing like this" })).toEqual({
+      products: [],
+      totalCount: 2,
+      sampleCount: 1,
+    });
+  });
+});
+
+describe("productService.discardUnusedImage", () => {
+  it("deletes an uploaded photo no product uses", async () => {
+    await service.discardUnusedImage(PHOTO_B.url);
+    expect(store.imageStore.deleted).toEqual([PHOTO_B.url]);
+  });
+
+  it("keeps a photo a product still shows", async () => {
+    await created({ image: PHOTO_A });
+    await service.discardUnusedImage(PHOTO_A.url);
+    expect(store.imageStore.deleted).toEqual([]);
+  });
+
+  it("ignores anything that isn't a product photo URL", async () => {
+    await service.discardUnusedImage(
+      "https://store.public.blob.vercel-storage.com/other/x.webp",
+    );
+    await service.discardUnusedImage("not a url");
+    await service.discardUnusedImage(
+      "https://blob.example.com/products/a.webp",
+    );
+    expect(store.imageStore.deleted).toEqual([]);
+  });
+
+  it("logs a failed delete instead of throwing", async () => {
+    store.imageStore.delete = async () => {
+      throw new Error("blob down");
+    };
+    await expect(
+      service.discardUnusedImage(PHOTO_B.url),
+    ).resolves.toBeUndefined();
+    expect(logError).toHaveBeenCalled();
   });
 });

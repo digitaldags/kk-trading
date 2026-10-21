@@ -81,6 +81,26 @@ describe("productRepo.listWithCategory", () => {
   });
 });
 
+describe("productRepo.isImageInUse", () => {
+  it("is true only for a photo a product shows", async () => {
+    const own = await createSeededTestDb();
+    try {
+      const repo = createProductRepo(own.db);
+      const url =
+        "https://store.public.blob.vercel-storage.com/products/a.webp";
+      expect(await repo.isImageInUse(url)).toBe(false);
+      const [first] = await repo.listWithCategory();
+      await repo.update(first!.id, {
+        imageUrl: url,
+        imagePathname: "products/a.webp",
+      });
+      expect(await repo.isImageInUse(url)).toBe(true);
+    } finally {
+      await own.client.close();
+    }
+  });
+});
+
 describe("ids that aren't uuids", () => {
   // Why the services check ids before calling a repository.
   it("make Postgres throw instead of finding nothing", async () => {
