@@ -1,0 +1,9 @@
+/* Sits at the very top of the page; once it scrolls out of view, the bar gets its hairline. */
+.sentinel {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 1px;
+  height: 4px;
+  pointer-events: none;
+}

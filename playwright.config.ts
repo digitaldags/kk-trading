@@ -1,4 +1,11 @@
+import { existsSync } from "node:fs";
 import { defineConfig, devices } from "@playwright/test";
+
+// Locally, .env.local points at the Neon dev branch, so the storefront specs can run.
+// CI has no database yet; those specs skip themselves (see e2e/storefront.spec.ts).
+if (!process.env.DATABASE_URL && existsSync(".env.local")) {
+  process.loadEnvFile(".env.local");
+}
 
 const isCI = !!process.env.CI;
 

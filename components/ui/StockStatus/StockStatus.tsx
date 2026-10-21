@@ -3,7 +3,7 @@ import { Icon } from "../Icon";
 import { cx } from "../shared/cx";
 import styles from "./StockStatus.module.css";
 
-const ICONS: Record<Status, string> = {
+export const STOCK_ICONS: Record<Status, string> = {
   in_stock: "check_circle",
   low_stock: "error",
   out_of_stock: "block",
@@ -19,7 +19,7 @@ export function StockStatus({ status, className }: StockStatusProps) {
     <span
       className={cx(styles.status, styles[status], "t-label-small", className)}
     >
-      <Icon name={ICONS[status]} size={16} />
+      <Icon name={STOCK_ICONS[status]} size={16} />
       {STOCK_LABELS[status]}
     </span>
   );

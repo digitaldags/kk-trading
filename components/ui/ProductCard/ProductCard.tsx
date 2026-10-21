@@ -9,6 +9,11 @@ import { toneForIndex } from "../shared/tone";
 import toneStyles from "../shared/tone.module.css";
 import styles from "./ProductCard.module.css";
 
+// Card widths in the storefront grid (auto-fill, min 250px, 16px gap, 1168px max):
+// 1 column below 548px, 2 below 814px, 3 below 1080px, then 4 columns of 280px.
+const GRID_SIZES =
+  "(max-width: 547px) calc(100vw - 32px), (max-width: 813px) calc(50vw - 24px), (max-width: 1079px) calc(33vw - 22px), 280px";
+
 export type ProductCardProps = {
   name: string;
   /** Category name, shown as the overline. */
@@ -24,6 +29,8 @@ export type ProductCardProps = {
   toneIndex: number;
   /** Makes the whole card a link. */
   href?: string;
+  /** `sizes` for the photo. Defaults to the storefront grid's 1 to 4 columns. */
+  sizes?: string;
   /** Heading level for the product name. */
   headingLevel?: "h2" | "h3" | "h4";
   className?: string;
@@ -39,6 +46,7 @@ export function ProductCard({
   icon,
   toneIndex,
   href,
+  sizes = GRID_SIZES,
   headingLevel: Heading = "h3",
   className,
 }: ProductCardProps) {
@@ -57,7 +65,7 @@ export function ProductCard({
             src={imageUrl}
             alt=""
             fill
-            sizes="(max-width: 640px) 100vw, 280px"
+            sizes={sizes}
             className={styles.image}
           />
         ) : (

@@ -10,6 +10,7 @@
   border-radius: var(--r-full);
   background: transparent;
   color: var(--on-surface-var);
+  text-decoration: none;
 }
 
 .danger {

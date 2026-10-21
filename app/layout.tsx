@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Roboto, Roboto_Flex } from "next/font/google";
+import localFont from "next/font/local";
 import "./tokens.css";
 import "./typography.css";
 import "./globals.css";
@@ -17,10 +18,15 @@ const robotoFlex = Roboto_Flex({
   variable: "--font-roboto-flex",
 });
 
-// Loaded as a stylesheet, not through next/font: subsetting would drop the ligature glyphs.
-// display=block hides the ligature text until the font arrives, so names never flash as words.
-const MATERIAL_SYMBOLS_URL =
-  "https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@20..48,400,0..1,0&display=block";
+// Material Symbols Rounded, subset to lib/iconNames.ts by `pnpm icons:fetch` and served
+// from our own origin. next/font/google can't be used: its subsetting drops the ligatures.
+// display "block" hides ligature text until the font arrives, so names never flash as words.
+const materialSymbols = localFont({
+  src: "./fonts/material-symbols-rounded.woff2",
+  display: "block",
+  variable: "--font-icons",
+  adjustFontFallback: false,
+});
 
 export const metadata: Metadata = {
   title: "KK Trading",
@@ -30,17 +36,11 @@ export const metadata: Metadata = {
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
-    <html lang="en" className={`${roboto.variable} ${robotoFlex.variable}`}>
-      <head>
-        <link rel="preconnect" href="https://fonts.googleapis.com" />
-        <link
-          rel="preconnect"
-          href="https://fonts.gstatic.com"
-          crossOrigin="anonymous"
-        />
-        <link rel="stylesheet" href={MATERIAL_SYMBOLS_URL} />
-      </head>
-      <body>
+    <html
+      lang="en"
+      className={`${roboto.variable} ${robotoFlex.variable} ${materialSymbols.variable}`}
+    >
+      <body id="top">
         <SnackbarProvider>{children}</SnackbarProvider>
       </body>
     </html>

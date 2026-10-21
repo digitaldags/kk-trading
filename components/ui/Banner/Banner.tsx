@@ -3,7 +3,7 @@ import { Icon } from "../Icon";
 import { cx } from "../shared/cx";
 import styles from "./Banner.module.css";
 
-const DEFAULT_ICONS = { info: "info", warn: "warning" } as const;
+export const BANNER_ICONS = { info: "info", warn: "warning" } as const;
 
 export type BannerProps = {
   tone?: "info" | "warn";
@@ -23,7 +23,7 @@ export function Banner({
     <div
       className={cx(styles.banner, styles[tone], "t-body-medium", className)}
     >
-      <Icon name={icon ?? DEFAULT_ICONS[tone]} size={20} />
+      <Icon name={icon ?? BANNER_ICONS[tone]} size={20} />
       <div className={styles.text}>{children}</div>
     </div>
   );

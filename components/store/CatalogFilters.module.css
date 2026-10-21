@@ -1,0 +1,70 @@
+.filters {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 20px;
+}
+
+.chipForm {
+  flex: 1 1 0;
+  min-width: 0;
+}
+
+.chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.search {
+  display: flex;
+  flex: 0 1 320px;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  height: 48px;
+  padding: 0 16px;
+  border-radius: var(--r-search);
+  background: var(--surface-high);
+  color: var(--on-surface-var);
+}
+
+.search:focus-within {
+  outline: 2px solid var(--primary);
+}
+
+.input {
+  flex: 1;
+  min-width: 0;
+  padding: 0;
+  border: 0;
+  outline: none;
+  background: transparent;
+  color: var(--on-surface);
+}
+
+.input::placeholder {
+  color: var(--on-surface-var);
+  opacity: 1;
+}
+
+.results {
+  transition: opacity 0.15s;
+}
+
+.pending {
+  opacity: 0.6;
+}
+
+@media (max-width: 640px) {
+  .filters {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .chipForm,
+  .search {
+    flex: none;
+  }
+}

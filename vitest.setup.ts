@@ -17,3 +17,16 @@ if (typeof HTMLDialogElement !== "undefined") {
     };
   }
 }
+
+// jsdom has no IntersectionObserver. This one never reports, which reads as "at the top".
+if (typeof window !== "undefined" && !("IntersectionObserver" in window)) {
+  class NoopIntersectionObserver {
+    observe() {}
+    unobserve() {}
+    disconnect() {}
+    takeRecords() {
+      return [];
+    }
+  }
+  Object.assign(window, { IntersectionObserver: NoopIntersectionObserver });
+}

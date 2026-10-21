@@ -1,0 +1,52 @@
+.section {
+  padding-block: 24px 48px;
+  /* Keeps the heading clear of the sticky app bar when jumping to #catalog. */
+  scroll-margin-top: 64px;
+}
+
+.head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 20px;
+}
+
+.count {
+  color: var(--on-surface-var);
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+  gap: 16px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.item {
+  display: flex;
+  min-width: 0;
+}
+
+.item > * {
+  flex: 1;
+}
+
+.empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  padding: 48px 24px;
+  border-radius: var(--r-lg);
+  background: var(--surface-low);
+  color: var(--on-surface-var);
+  text-align: center;
+}
+
+.empty > :nth-child(2) {
+  color: var(--on-surface);
+}

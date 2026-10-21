@@ -50,6 +50,8 @@
   --r-xs: 4px; /* text field, snackbar */
   --r-tag: 6px; /* Sample tag */
   --r-avatar: 14px; /* category avatar */
+  --r-tile-avatar: 20px; /* storefront category tile avatar */
+  --r-search: 24px; /* storefront search pill */
 
   /* Elevation (Figma effect styles Elevation/1 and Elevation/3) */
   --shadow-1: 0 1px 2px rgba(0, 0, 0, 0.16), 0 1px 3px 1px rgba(0, 0, 0, 0.08);

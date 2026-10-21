@@ -4,7 +4,7 @@
   /* A fixed 1em box keeps layout stable and clips the ligature name if the font is late. */
   width: 1em;
   overflow: hidden;
-  font-family: "Material Symbols Rounded";
+  font-family: var(--font-icons);
   font-size: var(--icon-size, 24px);
   font-style: normal;
   font-weight: normal;

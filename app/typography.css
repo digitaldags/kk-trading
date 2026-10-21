@@ -20,6 +20,23 @@
   letter-spacing: -0.4px;
 }
 
+/* Display/Hero Mobile up to 600px, then grows to Display/Hero (56/60) by 1080px. */
+.t-display-hero-fluid {
+  font-family: var(--font-display);
+  font-size: 34px;
+  line-height: 38px;
+  font-weight: 600;
+  letter-spacing: -0.4px;
+}
+
+@media (min-width: 601px) {
+  .t-display-hero-fluid {
+    font-size: clamp(40px, 5.2vw, 56px);
+    line-height: 1.08;
+    letter-spacing: -0.6px;
+  }
+}
+
 /* Headline */
 .t-headline-section {
   font-family: var(--font-display);
