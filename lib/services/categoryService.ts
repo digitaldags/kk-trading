@@ -5,7 +5,11 @@ import {
   ok,
   type ServiceResult,
 } from "@/lib/domain/result";
-import { categoryInputSchema, type CategoryInput } from "@/lib/domain/schemas";
+import {
+  categoryInputSchema,
+  isId,
+  type CategoryInput,
+} from "@/lib/domain/schemas";
 import { slugify, uniqueSlug } from "@/lib/domain/slug";
 import type { Category, CategoryWithCount } from "@/lib/domain/types";
 import type { CategoryRepo } from "@/lib/repositories/types";
@@ -57,6 +61,7 @@ export function createCategoryService(deps: { categories: CategoryRepo }) {
       id: string,
       input: CategoryInput,
     ): Promise<ServiceResult<Category, CategoryField>> {
+      if (!isId(id)) return formError(NOT_FOUND);
       const parsed = categoryInputSchema.safeParse(input);
       if (!parsed.success) return fromZodError(parsed.error);
       const values = parsed.data;
@@ -79,7 +84,7 @@ export function createCategoryService(deps: { categories: CategoryRepo }) {
     ): Promise<
       ServiceResult<{ movedProducts: number }, keyof DeleteCategoryOptions>
     > {
-      const category = await categories.findById(id);
+      const category = isId(id) ? await categories.findById(id) : null;
       if (!category) return formError(NOT_FOUND);
 
       const count = await categories.countProducts(id);

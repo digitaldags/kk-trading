@@ -81,6 +81,13 @@ describe("productRepo.listWithCategory", () => {
   });
 });
 
+describe("ids that aren't uuids", () => {
+  // Why the services check ids before calling a repository.
+  it("make Postgres throw instead of finding nothing", async () => {
+    await expect(createProductRepo(db).findById("abc")).rejects.toThrow();
+  });
+});
+
 describe("categoryRepo", () => {
   it("lists categories with product counts", async () => {
     const rows = await createCategoryRepo(db).list();

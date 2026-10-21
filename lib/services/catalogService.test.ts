@@ -61,3 +61,24 @@ describe("catalogService.getProductBySlug", () => {
     expect(await service.getProductBySlug("missing")).toBeNull();
   });
 });
+
+describe("catalogService input from the URL", () => {
+  it("ignores malformed filter values instead of failing", async () => {
+    const filter = { categorySlug: ["gym"], q: 42 } as unknown as {
+      categorySlug?: string;
+      q?: string;
+    };
+    expect(await service.listForStorefront(filter)).toHaveLength(2);
+  });
+
+  it("caps the search text at 100 characters", async () => {
+    const seen: (string | undefined)[] = [];
+    const spy = store.productRepo.listWithCategory;
+    store.productRepo.listWithCategory = async (f) => {
+      seen.push(f?.q);
+      return spy(f);
+    };
+    await service.listForStorefront({ q: "x".repeat(150) });
+    expect(seen[0]).toHaveLength(100);
+  });
+});

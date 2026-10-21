@@ -63,3 +63,24 @@ export const storeSettingsInputSchema = z.object({
 
 export type StoreSettingsInput = z.input<typeof storeSettingsInputSchema>;
 export type StoreSettingsValues = z.output<typeof storeSettingsInputSchema>;
+
+/** Record ids. Anything else (a tampered form, an old link) is treated as not found. */
+export const idSchema = z.uuid();
+
+export const isId = (value: unknown): value is string =>
+  idSchema.safeParse(value).success;
+
+export const MAX_SEARCH_LENGTH = 100;
+
+/** Storefront filters come from the URL, so malformed values are dropped, not rejected. */
+export const storefrontFilterSchema = z.object({
+  categorySlug: z.string().trim().optional().catch(undefined),
+  q: z
+    .string()
+    .trim()
+    .transform((q) => q.slice(0, MAX_SEARCH_LENGTH))
+    .optional()
+    .catch(undefined),
+});
+
+export type StorefrontFilter = z.input<typeof storefrontFilterSchema>;

@@ -223,3 +223,19 @@ describe("productService.delete", () => {
     expect(result.ok).toBe(false);
   });
 });
+
+describe("productService ids", () => {
+  it("treats an id that isn't a uuid as not found, without querying", async () => {
+    const findById = vi.spyOn(store.productRepo, "findById");
+    const remove = vi.spyOn(store.productRepo, "delete");
+    expect(await service.update("abc", input())).toMatchObject({
+      ok: false,
+      formError: "This product no longer exists. Refresh the list.",
+    });
+    expect(await service.delete("1; drop table products")).toMatchObject({
+      ok: false,
+    });
+    expect(findById).not.toHaveBeenCalled();
+    expect(remove).not.toHaveBeenCalled();
+  });
+});

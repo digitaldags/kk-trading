@@ -5,7 +5,11 @@ import {
   ok,
   type ServiceResult,
 } from "@/lib/domain/result";
-import { productInputSchema, type ProductInput } from "@/lib/domain/schemas";
+import {
+  isId,
+  productInputSchema,
+  type ProductInput,
+} from "@/lib/domain/schemas";
 import { slugify, uniqueSlug } from "@/lib/domain/slug";
 import type { Product } from "@/lib/domain/types";
 import type {
@@ -75,7 +79,7 @@ export function createProductService(deps: {
       id: string,
       input: ProductInput,
     ): Promise<ServiceResult<Product, ProductField>> {
-      const existing = await deps.products.findById(id);
+      const existing = isId(id) ? await deps.products.findById(id) : null;
       if (!existing) return formError(NOT_FOUND);
 
       const parsed = productInputSchema.safeParse(input);
@@ -107,7 +111,7 @@ export function createProductService(deps: {
     },
 
     async delete(id: string): Promise<ServiceResult<Product, never>> {
-      const product = await deps.products.delete(id);
+      const product = isId(id) ? await deps.products.delete(id) : null;
       if (!product) return formError(NOT_FOUND);
       if (product.imageUrl) await deleteImage(product.imageUrl);
       return ok(product);

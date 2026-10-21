@@ -185,3 +185,15 @@ describe("categoryService.delete", () => {
     expect(result.ok).toBe(false);
   });
 });
+
+describe("categoryService ids", () => {
+  it("treats an id that isn't a uuid as not found", async () => {
+    expect(
+      await service.update("abc", { name: "Gym", icon: "pool" }),
+    ).toMatchObject({ ok: false, formError: expect.any(String) });
+    expect(await service.delete("abc")).toMatchObject({
+      ok: false,
+      formError: expect.any(String),
+    });
+  });
+});
