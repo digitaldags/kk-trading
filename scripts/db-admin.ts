@@ -1,7 +1,7 @@
 import { neon } from "@neondatabase/serverless";
 import { drizzle } from "drizzle-orm/neon-http";
 import { describeError, loadDatabaseUrl } from "@/lib/db/env";
-import { MIN_ADMIN_PASSWORD_LENGTH } from "@/lib/db/seed";
+import { MIN_ADMIN_PASSWORD_LENGTH } from "@/lib/domain/schemas";
 import { createAdminUserRepo } from "@/lib/repositories/adminUserRepo";
 import { hashPassword } from "@/lib/services/passwords";
 

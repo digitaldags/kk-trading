@@ -95,7 +95,7 @@ describe("categoryService.delete", () => {
     await store.addCategory({ name: "Other" });
     expect(await service.delete(empty.id)).toEqual({
       ok: true,
-      data: { movedProducts: 0 },
+      data: { name: "Empty", movedProducts: 0, movedTo: null },
     });
     expect(store.categories.has(empty.id)).toBe(false);
   });
@@ -123,7 +123,7 @@ describe("categoryService.delete", () => {
     expect(await service.delete(gym.id, { moveProductsTo: office.id })).toEqual(
       {
         ok: true,
-        data: { movedProducts: 3 },
+        data: { name: "Gym", movedProducts: 3, movedTo: "Office" },
       },
     );
     expect(store.categories.has(gym.id)).toBe(false);
@@ -182,7 +182,62 @@ describe("categoryService.delete", () => {
 
   it("reports a category that no longer exists", async () => {
     const result = await service.delete("00000000-0000-4000-8000-999999999999");
-    expect(result.ok).toBe(false);
+    expect(result).toEqual({
+      ok: false,
+      fieldErrors: {},
+      formError: "That category no longer exists.",
+    });
+  });
+});
+
+describe("categoryService.move", () => {
+  const order = async () => (await service.list()).map((c) => c.name);
+
+  it("moves a category up or down one place", async () => {
+    await store.addCategory({ name: "A" });
+    const b = await store.addCategory({ name: "B" });
+    await store.addCategory({ name: "C" });
+
+    expect(await service.move(b.id, "up")).toEqual({
+      ok: true,
+      data: { name: "B", moved: true },
+    });
+    expect(await order()).toEqual(["B", "A", "C"]);
+
+    await service.move(b.id, "down");
+    await service.move(b.id, "down");
+    expect(await order()).toEqual(["A", "C", "B"]);
+  });
+
+  it("changes nothing at either end", async () => {
+    const a = await store.addCategory({ name: "A" });
+    const b = await store.addCategory({ name: "B" });
+    expect(await service.move(a.id, "up")).toEqual({
+      ok: true,
+      data: { name: "A", moved: false },
+    });
+    expect((await service.move(b.id, "down")).ok).toBe(true);
+    expect(await order()).toEqual(["A", "B"]);
+  });
+
+  it("writes the whole order back, which repairs ties", async () => {
+    await store.addCategory({ name: "A", sortOrder: 0 });
+    const b = await store.addCategory({ name: "B", sortOrder: 0 });
+    const c = await store.addCategory({ name: "C", sortOrder: 0 });
+    await service.move(c.id, "up");
+    expect(await order()).toEqual(["A", "C", "B"]);
+    expect(store.categories.get(b.id)?.sortOrder).toBe(2);
+  });
+
+  it("reports a category that no longer exists", async () => {
+    await store.addCategory({ name: "A" });
+    for (const id of ["abc", "00000000-0000-4000-8000-999999999999"]) {
+      expect(await service.move(id, "up")).toEqual({
+        ok: false,
+        fieldErrors: {},
+        formError: "That category no longer exists.",
+      });
+    }
   });
 });
 

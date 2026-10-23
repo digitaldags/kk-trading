@@ -96,5 +96,19 @@ export function createCategoryRepo(db: Db): CategoryRepo {
         q.delete(categories).where(eq(categories.id, fromId)),
       ]);
     },
+
+    async setSortOrders(ids) {
+      if (ids.length === 0) return;
+      const now = new Date();
+      await atomic(db, (q) => {
+        const [first, ...rest] = ids.map((id, index) =>
+          q
+            .update(categories)
+            .set({ sortOrder: index, updatedAt: now })
+            .where(eq(categories.id, id)),
+        );
+        return [first!, ...rest];
+      });
+    },
   };
 }

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { productsUrl } from "./adminUrl";
+import { categoriesUrl, productsUrl } from "./adminUrl";
 
 describe("productsUrl", () => {
   it("leaves out empty values", () => {
@@ -14,5 +14,13 @@ describe("productsUrl", () => {
     expect(productsUrl({ q: "chair", edit: "abc" })).toBe(
       "/admin?q=chair&edit=abc",
     );
+  });
+});
+
+describe("categoriesUrl", () => {
+  it("opens the editor for a new or an existing category", () => {
+    expect(categoriesUrl()).toBe("/admin/categories");
+    expect(categoriesUrl({ isNew: true })).toBe("/admin/categories?new=1");
+    expect(categoriesUrl({ edit: "abc" })).toBe("/admin/categories?edit=abc");
   });
 });

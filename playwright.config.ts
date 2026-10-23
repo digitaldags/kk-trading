@@ -9,6 +9,9 @@ if (!process.env.DATABASE_URL && existsSync(".env.local")) {
 
 const isCI = !!process.env.CI;
 
+/** Specs that change shared data, in the order they run (see `projects`). */
+const ADMIN_WRITES = ["admin-products", "admin-categories", "admin-settings"];
+
 export default defineConfig({
   testDir: "e2e",
   fullyParallel: true,
@@ -23,16 +26,18 @@ export default defineConfig({
     {
       name: "chromium",
       use: { ...devices["Desktop Chrome"] },
-      testIgnore: "admin-products.spec.ts",
+      testIgnore: ADMIN_WRITES.map((spec) => `${spec}.spec.ts`),
     },
-    // Runs after the rest: it adds and deletes products, which would change the counts
-    // the storefront specs check, and admin-auth signs out every session of the account.
-    {
-      name: "admin-products",
+    // The specs that change shared data run after the rest, one after another: they add
+    // and delete products and categories (which would change the counts the storefront
+    // specs check), rename the store, and change the password (which signs out every
+    // session of the account, admin-auth's included).
+    ...ADMIN_WRITES.map((spec, index) => ({
+      name: spec,
       use: { ...devices["Desktop Chrome"] },
-      testMatch: "admin-products.spec.ts",
-      dependencies: ["chromium"],
-    },
+      testMatch: `${spec}.spec.ts`,
+      dependencies: [index === 0 ? "chromium" : ADMIN_WRITES[index - 1]!],
+    })),
   ],
   webServer: {
     // CI runs `pnpm build` first, then tests the production server.

@@ -281,7 +281,7 @@ describe("ProductEditor", () => {
     ).toBeVisible();
     expect(
       screen.getByRole("link", { name: "Go to Categories" }),
-    ).toHaveAttribute("href", "/admin/categories");
+    ).toHaveAttribute("href", "/admin/categories?new=1");
   });
 });
 

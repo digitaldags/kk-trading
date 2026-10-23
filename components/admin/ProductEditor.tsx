@@ -302,7 +302,7 @@ export function ProductEditor({
         {categories.length === 0 ? (
           <p className={styles.text}>
             Add a category before adding products.{" "}
-            <Link href="/admin/categories" prefetch={false}>
+            <Link href="/admin/categories?new=1" prefetch={false}>
               Go to Categories
             </Link>
           </p>

@@ -1,0 +1,47 @@
+/* The prototype's `.panel`. */
+.panel {
+  display: grid;
+  gap: 16px;
+  margin-bottom: 16px;
+  padding: 24px;
+  border-radius: var(--r-lg);
+  background: var(--surface-low);
+}
+
+.title {
+  margin: 0;
+}
+
+.description {
+  margin: -8px 0 0;
+  color: var(--on-surface-var);
+}
+
+.two {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  align-items: start;
+  gap: 12px;
+}
+
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+.error {
+  margin: 0;
+  color: var(--err);
+}
+
+@media (max-width: 520px) {
+  .panel {
+    padding: 16px;
+  }
+
+  .two {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}

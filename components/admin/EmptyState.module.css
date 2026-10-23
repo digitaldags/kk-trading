@@ -1,4 +1,4 @@
-/* The prototype's `.empty` box: empty lists and sections that aren't built yet. */
+/* The prototype's `.empty` box, for empty lists. */
 .empty {
   display: flex;
   flex-direction: column;

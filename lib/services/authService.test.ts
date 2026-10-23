@@ -3,6 +3,7 @@ import {
   createAuthService,
   TOO_MANY_ATTEMPTS,
   WRONG_CREDENTIALS,
+  WRONG_CURRENT_PASSWORD,
   type PasswordVerifier,
 } from "./authService";
 import { createFakeStore, type FakeStore } from "./testing/fakes";
@@ -17,6 +18,9 @@ function fakePasswords() {
     async verify(hash, password) {
       checked.push(hash);
       return hash === `hash:${password}`;
+    },
+    async hash(password) {
+      return `hash:${password}`;
     },
   };
   return passwords;
@@ -188,5 +192,101 @@ describe("authService.getSessionAdmin", () => {
     expect(
       await service.getSessionAdmin({ sub: "not-a-uuid", pwd }),
     ).toBeNull();
+  });
+});
+
+describe("authService.changePassword", () => {
+  const NEW_PASSWORD = "a much longer new password";
+  const change = (input: {
+    currentPassword: string;
+    newPassword: string;
+    confirmPassword: string;
+  }) => service.changePassword(adminId, input, IP);
+  const valid = {
+    currentPassword: PASSWORD,
+    newPassword: NEW_PASSWORD,
+    confirmPassword: NEW_PASSWORD,
+  };
+
+  it("sets the new password and returns claims newer than the old session", async () => {
+    const before = await signIn("owner@example.com", PASSWORD);
+    store.clock.advance(MINUTE);
+
+    const result = await change(valid);
+    expect(result).toEqual({
+      ok: true,
+      data: { sub: adminId, pwd: expect.any(Number) },
+    });
+    const oldPwd = before.ok ? before.data.pwd : 0;
+    expect(result.ok && result.data.pwd).toBeGreaterThan(oldPwd);
+    expect((await store.adminUserRepo.findById(adminId))?.passwordHash).toBe(
+      `hash:${NEW_PASSWORD}`,
+    );
+    // The old session is now rejected; the new claims are accepted.
+    expect(await service.getSessionAdmin({ sub: adminId, pwd: oldPwd })).toBe(
+      null,
+    );
+    if (result.ok) {
+      expect(await service.getSessionAdmin(result.data)).not.toBe(null);
+    }
+  });
+
+  it("rejects a wrong current password, changes nothing and counts it as a failure", async () => {
+    const result = await change({ ...valid, currentPassword: "nope" });
+    expect(result).toEqual({
+      ok: false,
+      fieldErrors: { currentPassword: WRONG_CURRENT_PASSWORD },
+    });
+    expect((await store.adminUserRepo.findById(adminId))?.passwordHash).toBe(
+      `hash:${PASSWORD}`,
+    );
+    expect(store.loginAttempts).toEqual([
+      expect.objectContaining({ email: "owner@example.com", succeeded: false }),
+    ]);
+  });
+
+  it("checks the length and that both new passwords match, before the current one", async () => {
+    expect(
+      await change({
+        ...valid,
+        newPassword: "short",
+        confirmPassword: "short",
+      }),
+    ).toEqual({
+      ok: false,
+      fieldErrors: { newPassword: "Use at least 12 characters." },
+    });
+    expect(
+      await change({ ...valid, confirmPassword: "something else" }),
+    ).toEqual({
+      ok: false,
+      fieldErrors: { confirmPassword: "The two passwords don't match." },
+    });
+    expect(await change({ ...valid, currentPassword: "" })).toEqual({
+      ok: false,
+      fieldErrors: { currentPassword: "Enter your current password." },
+    });
+    expect(passwords.checked).toHaveLength(0);
+  });
+
+  it("shares the sign-in rate limit", async () => {
+    await failTimes(5);
+    expect(await change(valid)).toEqual({
+      ok: false,
+      fieldErrors: {},
+      formError: TOO_MANY_ATTEMPTS,
+    });
+    expect((await store.adminUserRepo.findById(adminId))?.passwordHash).toBe(
+      `hash:${PASSWORD}`,
+    );
+  });
+
+  it("rejects an admin that no longer exists", async () => {
+    const result = await service.changePassword(
+      "00000000-0000-4000-8000-999999999999",
+      valid,
+      IP,
+    );
+    expect(result.ok).toBe(false);
   });
 });

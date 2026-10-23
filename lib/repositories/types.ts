@@ -32,6 +32,8 @@ export interface CategoryRepo {
   delete(id: string): Promise<boolean>;
   /** Moves every product to `toId`, then deletes the category, in one transaction. */
   moveProductsAndDelete(fromId: string, toId: string): Promise<void>;
+  /** Sets each category's `sortOrder` to its index in `ids`, in one transaction. */
+  setSortOrders(ids: string[]): Promise<void>;
 }
 
 export type NewProduct = Pick<

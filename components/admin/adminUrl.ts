@@ -19,3 +19,12 @@ export function productsUrl({
   const search = params.toString();
   return search ? `/admin?${search}` : "/admin";
 }
+
+/** The categories page URL: `?edit=<id>` or `?new=1` opens the editor. */
+export function categoriesUrl({
+  edit,
+  isNew,
+}: { edit?: string | null; isNew?: boolean } = {}): string {
+  if (edit) return `/admin/categories?${new URLSearchParams({ edit })}`;
+  return isNew ? "/admin/categories?new=1" : "/admin/categories";
+}

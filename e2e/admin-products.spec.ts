@@ -59,7 +59,7 @@ test.beforeAll(() => {
   if (!process.env.DATABASE_URL || !EMAIL || !PASSWORD) return;
   execFileSync(
     process.execPath,
-    ["node_modules/tsx/dist/cli.mjs", "scripts/e2e-cleanup-products.ts"],
+    ["node_modules/tsx/dist/cli.mjs", "scripts/e2e-cleanup.ts"],
     { stdio: "ignore" },
   );
 });

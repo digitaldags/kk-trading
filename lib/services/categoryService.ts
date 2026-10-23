@@ -6,6 +6,7 @@ import {
   type ServiceResult,
 } from "@/lib/domain/result";
 import {
+  CATEGORY_NOT_FOUND,
   categoryInputSchema,
   isId,
   type CategoryInput,
@@ -16,12 +17,21 @@ import type { CategoryRepo } from "@/lib/repositories/types";
 
 type CategoryField = keyof CategoryInput;
 
-const NOT_FOUND = "This category no longer exists. Refresh the list.";
+const NOT_FOUND = CATEGORY_NOT_FOUND;
 const DUPLICATE_NAME = "A category with this name already exists.";
 
 const productCount = (n: number) => `${n} ${n === 1 ? "product" : "products"}`;
 
 export type DeleteCategoryOptions = { moveProductsTo?: string };
+
+export type DeletedCategory = {
+  name: string;
+  movedProducts: number;
+  /** Where the products went; null when there were none. */
+  movedTo: string | null;
+};
+
+export type MoveDirection = "up" | "down";
 
 export function createCategoryService(deps: { categories: CategoryRepo }) {
   const { categories } = deps;
@@ -81,16 +91,14 @@ export function createCategoryService(deps: { categories: CategoryRepo }) {
     async delete(
       id: string,
       { moveProductsTo }: DeleteCategoryOptions = {},
-    ): Promise<
-      ServiceResult<{ movedProducts: number }, keyof DeleteCategoryOptions>
-    > {
+    ): Promise<ServiceResult<DeletedCategory, keyof DeleteCategoryOptions>> {
       const category = isId(id) ? await categories.findById(id) : null;
       if (!category) return formError(NOT_FOUND);
 
       const count = await categories.countProducts(id);
       if (count === 0) {
         await categories.delete(id);
-        return ok({ movedProducts: 0 });
+        return ok({ name: category.name, movedProducts: 0, movedTo: null });
       }
 
       const others = (await categories.list()).filter((c) => c.id !== id);
@@ -106,12 +114,40 @@ export function createCategoryService(deps: { categories: CategoryRepo }) {
           "Choose a category to move the products to.",
         );
       }
-      if (!others.some((c) => c.id === moveProductsTo)) {
+      const target = others.find((c) => c.id === moveProductsTo);
+      if (!target) {
         return fieldError("moveProductsTo", "Choose a different category.");
       }
 
-      await categories.moveProductsAndDelete(id, moveProductsTo);
-      return ok({ movedProducts: count });
+      await categories.moveProductsAndDelete(id, target.id);
+      return ok({
+        name: category.name,
+        movedProducts: count,
+        movedTo: target.name,
+      });
+    },
+
+    /**
+     * Swaps a category with its neighbour in the storefront order (which also sets the
+     * tone colors). Writes the whole order back as 0..n-1, which also repairs ties. At
+     * either end it changes nothing.
+     */
+    async move(
+      id: string,
+      direction: MoveDirection,
+    ): Promise<ServiceResult<{ name: string; moved: boolean }>> {
+      const list = isId(id) ? await categories.list() : [];
+      const index = list.findIndex((c) => c.id === id);
+      if (index === -1) return formError(NOT_FOUND);
+
+      const other = direction === "up" ? index - 1 : index + 1;
+      const name = list[index]!.name;
+      if (other < 0 || other >= list.length) return ok({ name, moved: false });
+
+      const ids = list.map((c) => c.id);
+      [ids[index], ids[other]] = [ids[other]!, ids[index]!];
+      await categories.setSortOrders(ids);
+      return ok({ name, moved: true });
     },
   };
 }

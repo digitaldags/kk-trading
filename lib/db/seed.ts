@@ -1,11 +1,10 @@
 import { hash } from "@node-rs/argon2";
 import { inArray, sql } from "drizzle-orm";
+import { MIN_ADMIN_PASSWORD_LENGTH } from "@/lib/domain/schemas";
 import { slugify } from "@/lib/domain/slug";
 import type { Db } from "./client";
 import { adminUsers, categories, products, storeSettings } from "./schema";
 import { SEED_CATEGORIES, SEED_PRODUCTS, SEED_SETTINGS } from "./seed-data";
-
-export const MIN_ADMIN_PASSWORD_LENGTH = 12;
 
 export type SeedAdmin = { email: string; password: string };
 

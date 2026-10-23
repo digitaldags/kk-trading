@@ -1,7 +1,8 @@
 "use server";
 
-import { cookies, headers } from "next/headers";
+import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
+import { clientIp } from "@/lib/auth/clientIp";
 import { safeAdminPath } from "@/lib/auth/safeNext";
 import {
   SESSION_COOKIE,
@@ -43,11 +44,4 @@ export async function signIn(
     sessionCookieOptions,
   );
   redirect(safeAdminPath(formData.get("next")));
-}
-
-/** Vercel sets x-forwarded-for to the visitor's address; the first entry is the client. */
-async function clientIp(): Promise<string> {
-  const list = await headers();
-  const forwarded = list.get("x-forwarded-for")?.split(",")[0]?.trim();
-  return forwarded || list.get("x-real-ip")?.trim() || "unknown";
 }

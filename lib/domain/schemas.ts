@@ -9,6 +9,9 @@ const PRICE_ERROR = "Enter a price of 0 or more, numbers only.";
 /** A product that was deleted (or never existed) by the time someone acted on it. */
 export const PRODUCT_NOT_FOUND = "That product no longer exists.";
 
+/** The same for a category. */
+export const CATEGORY_NOT_FOUND = "That category no longer exists.";
+
 const maxLength = (max: number) => `Use ${max} characters or fewer.`;
 
 const text = (max: number) => z.string().trim().max(max, maxLength(max));
@@ -80,6 +83,34 @@ export const signInSchema = z.object({
 });
 
 export type SignInInput = z.input<typeof signInSchema>;
+
+/** The shortest admin password, for the password panel, `pnpm db:admin` and the seed. */
+export const MIN_ADMIN_PASSWORD_LENGTH = 12;
+
+const MAX_PASSWORD_LENGTH = 1024;
+
+/** The admin's own password change (Store details › Admin password). */
+export const passwordChangeSchema = z
+  .object({
+    currentPassword: z
+      .string("Enter your current password.")
+      .min(1, "Enter your current password.")
+      .max(MAX_PASSWORD_LENGTH, maxLength(MAX_PASSWORD_LENGTH)),
+    newPassword: z
+      .string(`Use at least ${MIN_ADMIN_PASSWORD_LENGTH} characters.`)
+      .min(
+        MIN_ADMIN_PASSWORD_LENGTH,
+        `Use at least ${MIN_ADMIN_PASSWORD_LENGTH} characters.`,
+      )
+      .max(MAX_PASSWORD_LENGTH, maxLength(MAX_PASSWORD_LENGTH)),
+    confirmPassword: z.string("The two passwords don't match."),
+  })
+  .refine((v) => v.newPassword === v.confirmPassword, {
+    path: ["confirmPassword"],
+    message: "The two passwords don't match.",
+  });
+
+export type PasswordChangeInput = z.input<typeof passwordChangeSchema>;
 
 /** Sign-in rate limit: failures counted over this window, per email and per IP. */
 export const LOGIN_WINDOW_MS = 15 * 60 * 1000;

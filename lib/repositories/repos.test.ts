@@ -168,6 +168,23 @@ describe("categoryRepo.moveProductsAndDelete", () => {
   });
 });
 
+describe("categoryRepo.setSortOrders", () => {
+  it("sets the storefront order from the list of ids", async () => {
+    const { db: fresh, client: freshClient } = await createSeededTestDb();
+    try {
+      const repo = createCategoryRepo(fresh);
+      const [office, gym] = await repo.list();
+      await repo.setSortOrders([gym!.id, office!.id]);
+      expect((await repo.list()).map((c) => [c.slug, c.sortOrder])).toEqual([
+        ["gym", 0],
+        ["office", 1],
+      ]);
+    } finally {
+      await freshClient.close();
+    }
+  });
+});
+
 describe("settings, admin users and login attempts", () => {
   it("reads and updates the single settings row", async () => {
     const repo = createSettingsRepo(db);

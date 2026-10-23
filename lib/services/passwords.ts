@@ -18,6 +18,7 @@ export const argon2Passwords: PasswordVerifier = {
     }
   },
   dummyHash: DUMMY_HASH,
+  hash: (password) => hashPassword(password),
 };
 
 export function hashPassword(password: string): Promise<string> {

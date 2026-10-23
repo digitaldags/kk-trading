@@ -105,6 +105,13 @@ export function createFakeStore() {
       }
       categories.delete(fromId);
     },
+    async setSortOrders(ids) {
+      maybeFail();
+      ids.forEach((id, index) => {
+        const existing = categories.get(id);
+        if (existing) categories.set(id, { ...existing, sortOrder: index });
+      });
+    },
   };
 
   const productRepo: ProductRepo = {
