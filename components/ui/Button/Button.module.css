@@ -1,0 +1,49 @@
+.button {
+  composes: stateLayer from "../shared/stateLayer.module.css";
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  height: 40px;
+  padding: 0 24px;
+  border: 0;
+  border-radius: var(--r-full);
+  background: transparent;
+  text-decoration: none;
+  white-space: nowrap;
+  transition: box-shadow 0.15s;
+}
+
+.filled {
+  background: var(--primary);
+  color: var(--on-primary);
+}
+
+.filled:hover:not(:disabled) {
+  box-shadow: var(--shadow-1);
+}
+
+.tonal {
+  background: var(--secondary-container);
+  color: var(--on-secondary-container);
+}
+
+.outlined {
+  border: 1px solid var(--outline);
+  color: var(--primary);
+}
+
+.text {
+  padding: 0 12px;
+  color: var(--primary);
+}
+
+.danger {
+  background: var(--err);
+  color: var(--on-err);
+}
+
+.inverse {
+  background: var(--on-primary-container);
+  color: var(--primary-container);
+}

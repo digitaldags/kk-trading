@@ -1,0 +1,59 @@
+.appBar {
+  position: sticky;
+  top: 0;
+  z-index: 20;
+  padding-top: env(safe-area-inset-top, 0px);
+  background: var(--surface);
+  transition: box-shadow 0.2s;
+}
+
+/* Hairline once the page has scrolled (set by ScrollShadow). */
+.appBar[data-scrolled] {
+  box-shadow: 0 1px 0 var(--outline-var);
+}
+
+.inner {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 64px;
+}
+
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-width: 0;
+  margin-right: auto;
+  color: inherit;
+  text-decoration: none;
+  border-radius: var(--r-md);
+}
+
+.mark {
+  display: grid;
+  place-items: center;
+  flex: none;
+  width: 40px;
+  height: 40px;
+  border-radius: var(--r-md);
+  background: var(--primary-container);
+  color: var(--on-primary-container);
+}
+
+.name {
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.nav {
+  display: flex;
+  gap: 4px;
+}
+
+@media (max-width: 640px) {
+  .nav {
+    display: none;
+  }
+}

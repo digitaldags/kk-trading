@@ -1,0 +1,72 @@
+/*
+ * Design tokens. Mirrors the Figma variable collections
+ * "KK Trading / Color" and "KK Trading / Dimension" (`color/primary` -> `--primary`).
+ * This is the only file allowed to contain hex color values.
+ * Light theme only.
+ */
+
+:root {
+  color-scheme: light;
+
+  /* Color */
+  --primary: #2b5f8c;
+  --on-primary: #ffffff;
+  --primary-container: #e4effb;
+  --on-primary-container: #0b2a45;
+  --secondary-container: #eef2f7;
+  --on-secondary-container: #1a2532;
+  --tertiary: #8b5000;
+  --tertiary-container: #ffeedf;
+  --on-tertiary-container: #3a1f00;
+  --surface: #ffffff;
+  --surface-low: #f8f9fb;
+  --surface-c: #f3f5f8;
+  --surface-high: #eef1f5;
+  --surface-highest: #e7ebf0;
+  --surface-card: #ffffff;
+  --on-surface: #191c20;
+  --on-surface-var: #4a5059;
+  --outline: #7a808a;
+  --outline-var: #dde2e8;
+  --inverse-surface: #2e3135;
+  --inverse-on: #eff0f6;
+  --inverse-primary: #9ccbfb;
+  --ok: #1e6b3a;
+  --ok-c: #c8efd0;
+  --warn: #6b4e00;
+  --warn-c: #ffe08a;
+  --err: #ba1a1a;
+  --err-c: #ffdad6;
+  --on-err: #ffffff;
+  --scrim: rgba(10, 14, 20, 0.45);
+
+  /* Radius */
+  --r-sm: 8px;
+  --r-md: 12px;
+  --r-lg: 16px;
+  --r-xl: 28px;
+  --r-full: 999px;
+  /* Used in Figma but not Figma variables yet. Add them to the Dimension collection to keep in sync. */
+  --r-xs: 4px; /* text field, snackbar */
+  --r-tag: 6px; /* Sample tag */
+  --r-avatar: 14px; /* category avatar */
+  --r-tile-avatar: 20px; /* storefront category tile avatar */
+  --r-search: 24px; /* storefront search pill */
+  --r-indicator: 3px; /* admin tab indicator, top corners */
+
+  /* Elevation (Figma effect styles Elevation/1 and Elevation/3) */
+  --shadow-1: 0 1px 2px rgba(0, 0, 0, 0.16), 0 1px 3px 1px rgba(0, 0, 0, 0.08);
+  --shadow-3: 0 4px 8px 3px rgba(0, 0, 0, 0.12), 0 1px 3px rgba(0, 0, 0, 0.2);
+
+  /* Font families. --font-roboto and --font-roboto-flex come from next/font in app/layout.tsx. */
+  --font-display:
+    var(--font-roboto-flex), var(--font-roboto), system-ui, -apple-system,
+    "Segoe UI", sans-serif;
+  --font-body:
+    var(--font-roboto), system-ui, -apple-system, "Segoe UI", sans-serif;
+}
+
+html,
+body {
+  background: #ffffff;
+}

@@ -1,0 +1,36 @@
+.tabs {
+  display: flex;
+  margin-bottom: 24px;
+  overflow-x: auto;
+  border-bottom: 1px solid var(--outline-var);
+  scrollbar-width: none;
+}
+
+.tab {
+  composes: stateLayer from "../ui/shared/stateLayer.module.css";
+  position: relative;
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  gap: 8px;
+  padding: 14px 20px;
+  color: var(--on-surface-var);
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+.tab[aria-current="page"] {
+  color: var(--primary);
+}
+
+/* The 3px indicator under the current tab. */
+.tab[aria-current="page"]::before {
+  content: "";
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  height: 3px;
+  border-radius: var(--r-indicator) var(--r-indicator) 0 0;
+  background: var(--primary);
+}

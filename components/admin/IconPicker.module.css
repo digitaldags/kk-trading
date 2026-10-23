@@ -1,0 +1,49 @@
+.field {
+  display: grid;
+  gap: 6px;
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
+.legend {
+  margin-bottom: 6px;
+  padding: 0;
+  color: var(--on-surface-var);
+}
+
+/* The prototype's `.icon-pick`. */
+.grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(48px, 1fr));
+  gap: 8px;
+}
+
+.tile {
+  composes: stateLayer from "../ui/shared/stateLayer.module.css";
+  display: grid;
+  place-items: center;
+  height: 48px;
+  border: 1px solid var(--outline-var);
+  border-radius: var(--r-md);
+  color: var(--on-surface-var);
+  cursor: pointer;
+}
+
+.checked {
+  border-color: transparent;
+  background: var(--primary-container);
+  color: var(--on-primary-container);
+}
+
+/* The radio is visually hidden, so its tile shows the keyboard focus. */
+.tile:has(:focus-visible) {
+  outline: 3px solid var(--primary);
+  outline-offset: 2px;
+}
+
+.error {
+  margin: 0;
+  color: var(--err);
+}

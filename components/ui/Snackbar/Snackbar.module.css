@@ -1,0 +1,28 @@
+.region {
+  position: fixed;
+  /* --snackbar-offset: room for a bar along the bottom, e.g. the admin Publish bar. */
+  bottom: calc(
+    16px + var(--snackbar-offset, 0px) + env(safe-area-inset-bottom, 0px)
+  );
+  left: 50%;
+  z-index: 60;
+  transform: translateX(-50%);
+  pointer-events: none;
+}
+
+.snackbar {
+  max-width: min(520px, calc(100vw - 32px));
+  padding: 14px 16px;
+  border-radius: var(--r-xs);
+  background: var(--inverse-surface);
+  color: var(--inverse-on);
+  box-shadow: var(--shadow-3);
+  animation: pop 0.2s cubic-bezier(0.2, 0, 0, 1);
+}
+
+@keyframes pop {
+  from {
+    opacity: 0;
+    transform: scale(0.96);
+  }
+}

@@ -1,0 +1,27 @@
+.main {
+  padding-block: 24px 48px;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+}
+
+/* The same width as the dialog, so the page and the dialog read the same. */
+.content {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 16px;
+  max-width: 760px;
+  margin-inline: auto;
+}
+
+/* Lines the text button's label up with the panel edge. */
+.back {
+  margin-left: -12px;
+}
+
+.panel {
+  align-self: stretch;
+  overflow: hidden;
+  border-radius: var(--r-xl);
+  background: var(--surface-high);
+}

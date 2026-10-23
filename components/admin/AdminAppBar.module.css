@@ -1,0 +1,66 @@
+.appBar {
+  position: sticky;
+  top: 0;
+  z-index: 20;
+  padding-top: env(safe-area-inset-top, 0px);
+  background: var(--surface);
+  transition: box-shadow 0.2s;
+}
+
+/* Hairline once the page has scrolled (set by ScrollShadow). */
+.appBar[data-scrolled] {
+  box-shadow: 0 1px 0 var(--outline-var);
+}
+
+.inner {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 64px;
+}
+
+.title {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  color: var(--on-surface);
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+/* The publish status pill (Figma 12:306). */
+.status {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  gap: 6px;
+  padding: 7px 12px;
+  border-radius: var(--r-lg);
+  white-space: nowrap;
+}
+
+.unpublished {
+  background: var(--warn-c);
+  color: var(--warn);
+}
+
+.live {
+  background: var(--ok-c);
+  color: var(--ok);
+}
+
+/* Too narrow for the words: the icon stays, the text is kept for screen readers. */
+@media (max-width: 600px) {
+  .status {
+    padding: 7px;
+  }
+
+  .statusText {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+    white-space: nowrap;
+  }
+}

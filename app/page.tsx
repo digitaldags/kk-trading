@@ -1,69 +1,79 @@
-import Image from "next/image";
-import styles from "./page.module.css";
+import type { Metadata } from "next";
+import {
+  getCategories,
+  getCurrentYear,
+  getProducts,
+  getStoreSettings,
+} from "@/app/_data/storefront";
+import { JsonLd } from "@/components/seo/JsonLd";
+import { Storefront } from "@/components/store/Storefront";
+import { storefrontFilterSchema } from "@/lib/domain/schemas";
+import { storeJsonLd } from "@/lib/seo/jsonLd";
+import { absoluteUrl, HOME_IMAGE_PATH } from "@/lib/site";
 
-export default function Home() {
+// Block until the page is complete and send it as one HTML document, with no streamed
+// fallback. Filtering is server-side, so the storefront then works without JavaScript.
+// The reads below are cached, so the wait is short.
+export const instant = false;
+
+export async function generateMetadata({
+  searchParams,
+}: PageProps<"/">): Promise<Metadata> {
+  // Request data first, so `pnpm build` doesn't prerender the settings read.
+  await searchParams;
+  const settings = await getStoreSettings();
+  const description = settings.tagline || settings.headline;
+  return {
+    title: { absolute: settings.name },
+    description,
+    // Filtered and searched views are the same page for search engines.
+    alternates: { canonical: "/" },
+    openGraph: {
+      type: "website",
+      url: "/",
+      siteName: settings.name,
+      title: settings.name,
+      description,
+    },
+    twitter: {
+      card: "summary_large_image",
+      title: settings.name,
+      description,
+    },
+  };
+}
+
+export default async function HomePage({ searchParams }: PageProps<"/">) {
+  // Reading searchParams makes the page render per request; the data reads are cached.
+  const params = await searchParams;
+  const { categorySlug, q } = storefrontFilterSchema.parse({
+    categorySlug: params.category,
+    q: params.q,
+  });
+  const filter = { categorySlug: categorySlug || undefined, q: q || undefined };
+
+  const [settings, categories, products, year] = await Promise.all([
+    getStoreSettings(),
+    getCategories(),
+    getProducts(filter),
+    getCurrentYear(),
+  ]);
+
   return (
-    <div className={styles.page}>
-      <main className={styles.main}>
-        <Image
-          className={styles.logo}
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className={styles.intro}>
-          <h1>
-            To get started, edit the{" "}
-            <code className={styles.code}>page.tsx</code> file.
-          </h1>
-          <p>
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              target="_blank"
-              rel="noopener noreferrer"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              target="_blank"
-              rel="noopener noreferrer"
-            >
-              Learning
-            </a>{" "}
-            center.
-          </p>
-        </div>
-        <div className={styles.ctas}>
-          <a
-            className={styles.primary}
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className={styles.logo}
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={14}
-            />
-            Deploy Now
-          </a>
-          <a
-            className={styles.secondary}
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
-        </div>
-      </main>
-    </div>
+    <>
+      <JsonLd
+        data={storeJsonLd(settings, {
+          url: absoluteUrl("/"),
+          image: absoluteUrl(HOME_IMAGE_PATH),
+        })}
+      />
+      <Storefront
+        settings={settings}
+        categories={categories}
+        products={products}
+        filter={filter}
+        year={year}
+      />
+    </>
   );
 }

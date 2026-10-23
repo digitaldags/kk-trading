@@ -1,0 +1,20 @@
+.chip {
+  composes: stateLayer from "../shared/stateLayer.module.css";
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  height: 32px;
+  padding: 0 16px;
+  border: 1px solid var(--outline-var);
+  border-radius: var(--r-sm);
+  background: transparent;
+  color: var(--on-surface-var);
+  white-space: nowrap;
+}
+
+.selected {
+  padding-left: 8px;
+  border-color: transparent;
+  background: var(--secondary-container);
+  color: var(--on-secondary-container);
+}

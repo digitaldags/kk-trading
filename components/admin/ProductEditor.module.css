@@ -1,0 +1,74 @@
+.form {
+  display: grid;
+  gap: 16px;
+}
+
+.two {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.text {
+  margin: 0;
+}
+
+.label,
+.hint {
+  margin: 0;
+  color: var(--on-surface-var);
+}
+
+.error {
+  margin: 0;
+  color: var(--err);
+}
+
+.photoField {
+  display: grid;
+  gap: 6px;
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
+.photoField > .label {
+  padding: 0;
+}
+
+.photo {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px;
+}
+
+.preview {
+  position: relative;
+  display: grid;
+  place-items: center;
+  flex: none;
+  width: 84px;
+  height: 64px;
+  overflow: hidden;
+  border-radius: var(--r-md);
+  background: var(--surface-card);
+  color: var(--on-surface);
+}
+
+.image {
+  object-fit: cover;
+}
+
+.photoActions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+@media (max-width: 520px) {
+  .two {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}

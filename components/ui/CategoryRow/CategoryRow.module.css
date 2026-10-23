@@ -1,0 +1,38 @@
+.row {
+  composes: row from "../shared/row.module.css";
+  /* Figma: 48px avatar, then the 16px gap. */
+  grid-template-columns: 48px minmax(0, 1fr) auto;
+}
+
+.avatar {
+  display: grid;
+  place-items: center;
+  width: 48px;
+  height: 48px;
+  border-radius: var(--r-avatar);
+}
+
+/* With the move buttons there are four icon buttons: below 640px they go on a second
+   line, under the name, so the name and description keep the full width. */
+@media (max-width: 640px) {
+  .row {
+    grid-template-columns: 48px minmax(0, 1fr);
+    grid-template-areas:
+      "avatar main"
+      "avatar actions";
+    row-gap: 4px;
+  }
+
+  .avatar {
+    grid-area: avatar;
+  }
+
+  .main {
+    grid-area: main;
+  }
+
+  .actions {
+    grid-area: actions;
+    margin-left: -8px;
+  }
+}

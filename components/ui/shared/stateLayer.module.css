@@ -1,0 +1,39 @@
+/*
+ * Hover and press feedback, as in the prototype: a layer of currentColor
+ * at 8% (hover) or 12% (active) over the control.
+ */
+.stateLayer {
+  position: relative;
+  overflow: hidden;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.stateLayer::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: currentColor;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.15s;
+}
+
+.stateLayer:hover::after {
+  opacity: 0.08;
+}
+
+.stateLayer:active::after {
+  opacity: 0.12;
+}
+
+.stateLayer:disabled,
+.stateLayer[aria-disabled="true"] {
+  opacity: 0.38;
+  cursor: not-allowed;
+}
+
+.stateLayer:disabled::after,
+.stateLayer[aria-disabled="true"]::after {
+  display: none;
+}

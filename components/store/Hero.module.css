@@ -1,0 +1,129 @@
+.hero {
+  padding-block: 24px 40px;
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1.15fr) minmax(0, 1fr);
+  gap: 24px;
+}
+
+.copy {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 20px;
+  padding: 40px 36px;
+  border-radius: var(--r-xl);
+  background: var(--primary-container);
+  color: var(--on-primary-container);
+}
+
+.eyebrow {
+  opacity: 0.85;
+}
+
+.tagline {
+  max-width: 460px;
+  opacity: 0.9;
+}
+
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+/* Figma uses the panel's on-color for this outlined button, not primary. */
+.actions .outlined {
+  border-color: currentColor;
+  color: var(--on-primary-container);
+}
+
+.facts {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 20px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  opacity: 0.85;
+}
+
+.facts li {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.tiles {
+  display: grid;
+  grid-auto-rows: 1fr;
+  gap: 12px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.tile {
+  composes: stateLayer from "../ui/shared/stateLayer.module.css";
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  height: 100%;
+  min-height: 112px;
+  padding: 20px 22px;
+  border-radius: var(--r-xl);
+  text-decoration: none;
+}
+
+.avatar {
+  display: grid;
+  place-items: center;
+  flex: none;
+  width: 64px;
+  height: 64px;
+  border-radius: var(--r-tile-avatar);
+  background: var(--surface-card);
+  box-shadow: var(--shadow-1);
+}
+
+.tileText {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.blurb {
+  opacity: 0.85;
+}
+
+.count {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding-top: 6px;
+}
+
+@media (max-width: 860px) {
+  .grid {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 16px;
+  }
+
+  .tiles {
+    grid-auto-rows: auto;
+  }
+}
+
+@media (max-width: 600px) {
+  .hero {
+    padding-top: 16px;
+  }
+
+  .copy {
+    padding: 28px 22px;
+  }
+}
