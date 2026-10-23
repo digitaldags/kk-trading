@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { Roboto, Roboto_Flex } from "next/font/google";
+import { Roboto_Flex } from "next/font/google";
 import localFont from "next/font/local";
 import "./tokens.css";
 import "./typography.css";
@@ -7,9 +7,13 @@ import "./globals.css";
 import { SnackbarProvider } from "@/components/ui/Snackbar";
 import { siteUrl } from "@/lib/site";
 
-const roboto = Roboto({
-  weight: ["400", "500"],
-  subsets: ["latin"],
+// Roboto 400 to 500, self-hosted by `pnpm fonts:fetch` (Latin-1, punctuation and ₱).
+// next/font/google broke the build in CI when Google served Roboto from a URL with
+// extra query parameters (scripts/fonts-fetch.ts).
+const roboto = localFont({
+  src: "./fonts/roboto.woff2",
+  weight: "400 500",
+  style: "normal",
   variable: "--font-roboto",
 });
 
