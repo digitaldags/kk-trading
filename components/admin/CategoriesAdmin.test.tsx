@@ -105,7 +105,7 @@ describe("CategoriesAdmin", () => {
     );
     const dialog = screen.getByRole("dialog", { name: "Delete Outdoor?" });
     expect(dialog).toHaveTextContent(
-      "Outdoor has no products. It will be removed from the store.",
+      "Outdoor has no products. It will be removed from the store when you publish.",
     );
     expect(within(dialog).queryByLabelText("Move products to")).toBeNull();
 

@@ -86,7 +86,7 @@ describe("ProductsAdmin", () => {
     renderAdmin({ sampleCount: 8 });
     expect(
       screen.getByText(
-        "8 of these products are samples. Edit them with real details or delete them.",
+        "8 of these products are samples. Edit them with real details or delete them, then publish.",
       ),
     ).toBeVisible();
     cleanup();
@@ -148,7 +148,7 @@ describe("ProductsAdmin", () => {
       name: "Delete Ergonomic mesh chair?",
     });
     expect(dialog).toHaveTextContent(
-      "It will be removed from the store right away.",
+      "It will be removed from the store when you publish.",
     );
     await act(async () => {
       fireEvent.click(

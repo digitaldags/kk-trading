@@ -1,10 +1,11 @@
 import { execFileSync } from "node:child_process";
 import { expect, test, type Browser, type Page } from "@playwright/test";
+import { publish } from "./helpers";
 
 // Store details and the password change against the Neon dev branch. The store name gets
 // " E2E" appended and is put back; the password is changed, then reset to the test
 // account's with `pnpm db:admin`. Runs last (see playwright.config.ts), because changing
-// the password signs out every other session. Skips in CI until ticket 14.
+// the password signs out every other session. In CI it runs on a throwaway Neon branch.
 const EMAIL = process.env.E2E_ADMIN_EMAIL ?? "";
 const PASSWORD = process.env.E2E_ADMIN_PASSWORD ?? "";
 test.skip(
@@ -71,11 +72,13 @@ const passwordForm = (page: Page) =>
 const snackbar = (page: Page, text: string) =>
   page.getByRole("status").filter({ hasText: text });
 
+/** Saves a new store name and publishes it. */
 async function setStoreName(page: Page, name: string) {
   const field = detailsForm(page).getByLabel("Store name");
   await field.fill(name);
   await detailsForm(page).getByRole("button", { name: "Save details" }).click();
   await expect(snackbar(page, "Store details saved.")).toBeVisible();
+  await publish(page);
 }
 
 test("a new store name shows in the app bar, hero and footer on the next load", async ({

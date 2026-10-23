@@ -49,6 +49,7 @@ describe("migrations and seed", () => {
       categories: 2,
       products: 8,
       admins: 1,
+      published: true,
     });
     expect(await counts()).toEqual({
       settings: 1,
@@ -83,6 +84,7 @@ describe("migrations and seed", () => {
       categories: 0,
       products: 0,
       admins: 0,
+      published: false,
     });
     expect({
       categories: await db.select().from(categories),

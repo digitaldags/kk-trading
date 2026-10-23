@@ -2,8 +2,8 @@ import { execFileSync } from "node:child_process";
 import { expect, test, type Page } from "@playwright/test";
 
 // Admin sign-in against the Neon dev branch, with the local test account from
-// `pnpm db:admin` (E2E_ADMIN_EMAIL / E2E_ADMIN_PASSWORD in .env.local). Skips in CI until
-// ticket 14 adds a test database.
+// `pnpm db:admin` (E2E_ADMIN_EMAIL / E2E_ADMIN_PASSWORD in .env.local). In CI the
+// workflow seeds a throwaway Neon branch with a generated account (README › Tests).
 const EMAIL = process.env.E2E_ADMIN_EMAIL ?? "";
 const PASSWORD = process.env.E2E_ADMIN_PASSWORD ?? "";
 test.skip(
@@ -207,8 +207,9 @@ test("changing the password signs out other sessions", async ({ page }) => {
     "--allow-weak-password",
   ]);
 
-  const response = await page.reload();
-  expect(response?.status()).toBe(401);
+  // The page, not the status: a production build sends the admin shell (with 200)
+  // before the session check runs. Actions still answer 401 (tested above).
+  await page.reload();
   await expect(
     page.getByRole("heading", { level: 1, name: "Sign in to continue" }),
   ).toBeVisible();

@@ -245,7 +245,7 @@ export function CategoriesAdmin({
             ) : (
               <p className={styles.text}>
                 {toDelete.name} has no products. It will be removed from the
-                store.
+                store when you publish.
               </p>
             )}
           </div>

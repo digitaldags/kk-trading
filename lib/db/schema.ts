@@ -5,6 +5,7 @@ import {
   check,
   index,
   integer,
+  jsonb,
   pgTable,
   smallint,
   text,
@@ -84,6 +85,21 @@ export const storeSettings = pgTable(
     updatedAt: updatedAt(),
   },
   (t) => [check("store_settings_single_row_check", sql`${t.id} = 1`)],
+);
+
+// What the storefront shows: one JSON copy of categories, products and settings, made by
+// Publish (ticket 15). Admin edits the tables above, which act as the draft. A single
+// row, id = 1. See lib/db/publish.ts.
+export const publishedSnapshot = pgTable(
+  "published_snapshot",
+  {
+    id: smallint("id").primaryKey(),
+    data: jsonb("data").notNull(),
+    publishedAt: timestamp("published_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (t) => [check("published_snapshot_single_row_check", sql`${t.id} = 1`)],
 );
 
 export const adminUsers = pgTable("admin_users", {

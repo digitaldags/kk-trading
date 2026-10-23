@@ -1,5 +1,6 @@
-import { and, asc, eq, ilike, like, max, or, type SQL } from "drizzle-orm";
+import { and, asc, eq, ilike, like, max, or, sql, type SQL } from "drizzle-orm";
 import type { Db } from "@/lib/db/client";
+import { queryRows } from "@/lib/db/publish";
 import { categories, products } from "@/lib/db/schema";
 import { escapeLike } from "./like";
 import type { ProductRepo } from "./types";
@@ -91,13 +92,25 @@ export function createProductRepo(db: Db): ProductRepo {
       return row ?? null;
     },
 
+    // The published snapshot counts too: until the next publish, the storefront still
+    // shows a photo the draft has replaced or removed.
     async isImageInUse(url) {
       const [row] = await db
         .select({ id: products.id })
         .from(products)
         .where(eq(products.imageUrl, url))
         .limit(1);
-      return row !== undefined;
+      if (row) return true;
+      const published = await queryRows(
+        db,
+        sql`
+          select 1 from published_snapshot ps,
+            jsonb_array_elements(ps.data->'products') p
+          where ps.id = 1 and p->>'image_url' = ${url}
+          limit 1
+        `,
+      );
+      return published.length > 0;
     },
   };
 }

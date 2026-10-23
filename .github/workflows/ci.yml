@@ -12,7 +12,13 @@ concurrency:
 jobs:
   check:
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 30
+    env:
+      # E2E runs on a throwaway Neon branch when these secrets exist (README › Tests).
+      # Without them (e.g. a pull request from a fork) the data specs skip themselves.
+      NEON_API_KEY: ${{ secrets.NEON_API_KEY }}
+      NEON_PROJECT_ID: ${{ secrets.NEON_PROJECT_ID }}
+      BLOB_READ_WRITE_TOKEN: ${{ secrets.BLOB_READ_WRITE_TOKEN }}
     steps:
       - uses: actions/checkout@v6
 
@@ -29,12 +35,64 @@ jobs:
       - run: pnpm lint
       - run: pnpm format:check
       - run: pnpm typecheck
-      - run: pnpm test
+      # Unit tests, with at least 90% of lines covered in lib/services.
+      - run: pnpm test:coverage
 
       - run: pnpm exec playwright install --with-deps chromium
       - run: pnpm build
+
+      - name: Make test credentials
+        if: env.NEON_API_KEY != ''
+        id: creds
+        run: |
+          secret=$(openssl rand -base64 32)
+          password=$(openssl rand -hex 12)
+          echo "::add-mask::$secret"
+          echo "::add-mask::$password"
+          {
+            echo "SESSION_SECRET=$secret"
+            echo "E2E_ADMIN_EMAIL=ci-admin@example.test"
+            echo "E2E_ADMIN_PASSWORD=$password"
+            echo "ADMIN_EMAIL=ci-admin@example.test"
+            echo "ADMIN_INITIAL_PASSWORD=$password"
+          } >> "$GITHUB_ENV"
+          echo "expires_at=$(date -u -d '+1 hour' +%Y-%m-%dT%H:%M:%SZ)" >> "$GITHUB_OUTPUT"
+
+      # Schema-only: the tables of production, none of its data. Deleted at the end, and
+      # it expires after an hour in case the delete never runs.
+      - name: Create a Neon branch for e2e
+        if: env.NEON_API_KEY != ''
+        id: neon
+        uses: neondatabase/create-branch-action@v6
+        with:
+          project_id: ${{ env.NEON_PROJECT_ID }}
+          api_key: ${{ env.NEON_API_KEY }}
+          parent_branch: main
+          branch_type: schema-only
+          branch_name: ci/${{ github.run_id }}-${{ github.run_attempt }}
+          expires_at: ${{ steps.creds.outputs.expires_at }}
+
+      - name: Migrate and seed the e2e branch
+        if: steps.neon.outputs.db_url != ''
+        env:
+          DATABASE_URL: ${{ steps.neon.outputs.db_url }}
+          E2E_EXPECTED_DB_HOST: ${{ steps.neon.outputs.db_host }}
+        run: |
+          pnpm exec tsx scripts/e2e-prepare-db.ts --reset-ci-branch
+          pnpm db:migrate
+          pnpm db:seed
+          echo "DATABASE_URL=$DATABASE_URL" >> "$GITHUB_ENV"
+
       # Playwright starts `pnpm start` because CI is set.
       - run: pnpm test:e2e
+
+      - name: Delete the e2e branch
+        if: always() && steps.neon.outputs.branch_id != ''
+        uses: neondatabase/delete-branch-action@v3
+        with:
+          project_id: ${{ env.NEON_PROJECT_ID }}
+          branch: ${{ steps.neon.outputs.branch_id }}
+          api_key: ${{ env.NEON_API_KEY }}
 
       - uses: actions/upload-artifact@v5
         if: failure()

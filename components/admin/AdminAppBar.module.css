@@ -27,3 +27,40 @@
   white-space: nowrap;
   text-overflow: ellipsis;
 }
+
+/* The publish status pill (Figma 12:306). */
+.status {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  gap: 6px;
+  padding: 7px 12px;
+  border-radius: var(--r-lg);
+  white-space: nowrap;
+}
+
+.unpublished {
+  background: var(--warn-c);
+  color: var(--warn);
+}
+
+.live {
+  background: var(--ok-c);
+  color: var(--ok);
+}
+
+/* Too narrow for the words: the icon stays, the text is kept for screen readers. */
+@media (max-width: 600px) {
+  .status {
+    padding: 7px;
+  }
+
+  .statusText {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+    white-space: nowrap;
+  }
+}

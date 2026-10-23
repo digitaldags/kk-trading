@@ -165,10 +165,11 @@ export function ProductsAdmin({
 
   return (
     <>
+      <h1 className="visually-hidden">Products</h1>
       {sampleCount > 0 && (
         <Banner className={styles.banner}>
           {sampleCount} of these products are samples. Edit them with real
-          details or delete them.
+          details or delete them, then publish.
         </Banner>
       )}
 
@@ -277,7 +278,7 @@ export function ProductsAdmin({
         }
       >
         <p className={styles.dialogText}>
-          It will be removed from the store right away.
+          It will be removed from the store when you publish.
         </p>
       </Dialog>
 

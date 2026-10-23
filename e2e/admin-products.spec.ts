@@ -1,10 +1,11 @@
 import { execFileSync } from "node:child_process";
 import { expect, test, type Page } from "@playwright/test";
+import { publish } from "./helpers";
 
 // The products admin against the Neon dev branch (and the Blob store in .env.local for
 // the photo test). Each run adds its own products (named with a timestamp) and deletes
-// them again, so the seeded samples are never touched. Skips in CI until ticket 14 adds
-// a test database.
+// them again, so the seeded samples are never touched. In CI it runs on a throwaway Neon
+// branch (README › Tests), and skips without its secrets.
 const EMAIL = process.env.E2E_ADMIN_EMAIL ?? "";
 const PASSWORD = process.env.E2E_ADMIN_PASSWORD ?? "";
 test.skip(
@@ -106,6 +107,8 @@ test("adding a product shows it in the list and on the store", async ({
   await expect(dialog).toBeHidden();
   await expect(row(page, NAME)).toContainText("₱1,250");
 
+  // Saves are a draft: the store shows the product once it's published.
+  await publish(page);
   await page.goto(`/?q=${encodeURIComponent(NAME)}`);
   await expect(page.getByRole("link", { name: NAME })).toBeVisible();
 });
@@ -130,6 +133,7 @@ test("a photo uploads to Blob and shows on the store", async ({ page }) => {
     /public\.blob\.vercel-storage\.com/,
   );
 
+  await publish(page);
   await page.goto(`/?q=${encodeURIComponent(NAME)}`);
   const card = page.locator("article").filter({ hasText: NAME });
   await expect(card.getByRole("link", { name: NAME })).toBeVisible();
@@ -223,6 +227,7 @@ test("deleting removes the product from the list and the store", async ({
   await dialog.getByLabel("Price").fill("10");
   await dialog.getByRole("button", { name: "Add product" }).click();
   await expect(row(page, name)).toBeVisible();
+  await publish(page);
 
   await page.goto(`/?q=${encodeURIComponent(name)}`);
   await expect(
@@ -241,6 +246,7 @@ test("deleting removes the product from the list and the store", async ({
     .click();
   await expect(snackbar(page, `Deleted ${name}.`)).toBeVisible();
   await expect(row(page, name)).toHaveCount(0);
+  await publish(page);
   expect(
     await page.evaluate(
       () => (window as unknown as { marker?: boolean }).marker,

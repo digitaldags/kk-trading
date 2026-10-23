@@ -1,7 +1,7 @@
 import { expect, test, type Page } from "@playwright/test";
 
-// These read the seeded database (2 categories, 8 products). They run locally against
-// the Neon dev branch and skip in CI until ticket 14 adds a test database.
+// These read the seeded database (2 categories, 8 products): locally the Neon dev
+// branch, in CI a throwaway Neon branch (README › Tests). They skip without DATABASE_URL.
 test.skip(!process.env.DATABASE_URL, "Needs DATABASE_URL (a seeded database).");
 
 const grid = (page: Page) => page.locator("#catalog ul").first();

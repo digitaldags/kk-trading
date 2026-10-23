@@ -1,0 +1,57 @@
+/* Figma 12:501: an inverse surface bar, centered above the bottom edge. */
+.bar {
+  position: fixed;
+  bottom: calc(16px + env(safe-area-inset-bottom, 0px));
+  left: 50%;
+  z-index: 50;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: min(640px, calc(100vw - 32px));
+  padding: 8px 8px 8px 16px;
+  border-radius: var(--r-lg);
+  background: var(--inverse-surface);
+  box-shadow: var(--shadow-3);
+  transform: translateX(-50%);
+}
+
+/* The snackbar moves up so it doesn't cover the bar. */
+:root:has(.bar) {
+  --snackbar-offset: 72px;
+}
+
+.message {
+  flex: 1;
+  min-width: 0;
+  margin: 0;
+  color: var(--inverse-on);
+}
+
+.bar .discard {
+  color: var(--inverse-primary);
+}
+
+.bar .publish {
+  background: var(--inverse-primary);
+  color: var(--inverse-surface);
+}
+
+.dialogText {
+  margin: 0;
+}
+
+@media (max-width: 600px) {
+  .bar {
+    flex-wrap: wrap;
+    justify-content: flex-end;
+  }
+
+  .message {
+    flex-basis: 100%;
+    padding-top: 4px;
+  }
+
+  :root:has(.bar) {
+    --snackbar-offset: 116px;
+  }
+}

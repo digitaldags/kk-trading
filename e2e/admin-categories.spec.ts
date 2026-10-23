@@ -1,10 +1,11 @@
 import { execFileSync } from "node:child_process";
 import { expect, test, type Page } from "@playwright/test";
+import { publish } from "./helpers";
 
 // Categories admin against the Neon dev branch. Each run adds its own category (named
 // with a timestamp), never gives it products, and deletes it again, so the seeded
-// categories are only reordered and put back. Skips in CI until ticket 14 adds a test
-// database.
+// categories are only reordered and put back. In CI it runs on a throwaway Neon branch
+// (README › Tests), and skips without its secrets.
 const EMAIL = process.env.E2E_ADMIN_EMAIL ?? "";
 const PASSWORD = process.env.E2E_ADMIN_PASSWORD ?? "";
 test.skip(
@@ -84,7 +85,8 @@ test("adding a category by keyboard alone shows it on the store", async ({
   await expect(dialog).toBeHidden();
   await expect(rowNames(page).last()).toHaveText(NAME);
 
-  // On the store: a tile, a chip and a nav link.
+  // On the store, once published: a tile, a chip and a nav link.
+  await publish(page);
   await page.goto("/");
   await expect(
     page.getByRole("link", { name: new RegExp(`^${NAME}`) }).first(),
@@ -141,6 +143,7 @@ test("moving a category changes the order, here and on the store", async ({
     page.getByRole("button", { name: `Move ${NAME} up` }),
   ).toBeFocused();
 
+  await publish(page);
   await page.goto("/");
   await expect(
     page.getByRole("group", { name: "Filter by category" }).getByRole("button"),
@@ -155,6 +158,7 @@ test("moving a category changes the order, here and on the store", async ({
     "Gym equipment",
     NAME,
   ]);
+  await publish(page);
 });
 
 test("deleting a category without products removes it from the store", async ({
@@ -163,7 +167,7 @@ test("deleting a category without products removes it from the store", async ({
   await page.getByRole("button", { name: `Delete ${NAME}` }).click();
   const dialog = page.getByRole("dialog", { name: `Delete ${NAME}?` });
   await expect(dialog).toContainText(
-    `${NAME} has no products. It will be removed from the store.`,
+    `${NAME} has no products. It will be removed from the store when you publish.`,
   );
   await dialog.getByRole("button", { name: "Delete category" }).click();
   await expect(snackbar(page, `Deleted ${NAME}.`)).toBeVisible();
@@ -172,6 +176,7 @@ test("deleting a category without products removes it from the store", async ({
     "Gym equipment",
   ]);
 
+  await publish(page);
   await page.goto("/");
   await expect(
     page

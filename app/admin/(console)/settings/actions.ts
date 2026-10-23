@@ -1,7 +1,7 @@
 "use server";
 
 import { cookies } from "next/headers";
-import { refresh, updateTag } from "next/cache";
+import { refresh } from "next/cache";
 import type {
   PasswordField,
   SaveResult,
@@ -14,7 +14,6 @@ import {
   sessionCookieOptions,
   signSession,
 } from "@/lib/auth/session";
-import { SETTINGS_TAG } from "@/lib/cacheTags";
 import type {
   PasswordChangeInput,
   StoreSettingsInput,
@@ -23,7 +22,7 @@ import { authService, settingsService } from "@/lib/services";
 
 // Every admin action starts with `await requireAdmin()` (see ../../actions-guard.test.ts).
 
-/** The store name, hero copy and contact details. `updateTag` makes `/` show them next load. */
+/** The store name, hero copy and contact details, in the draft: `/` shows them after Publish. */
 export async function saveStoreDetails(
   input: StoreSettingsInput,
 ): Promise<SaveResult<StoreDetailsField>> {
@@ -36,7 +35,6 @@ export async function saveStoreDetails(
       formError: result.formError,
     };
   }
-  updateTag(SETTINGS_TAG);
   refresh();
   return { ok: true, message: "Store details saved." };
 }

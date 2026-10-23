@@ -10,6 +10,8 @@ import type {
   LoginAttempt,
   LoginAttemptRepo,
   ProductRepo,
+  PublishRepo,
+  PublishedStore,
   SettingsRepo,
 } from "@/lib/repositories/types";
 import type { ImageStore } from "../imageStore";
@@ -25,6 +27,13 @@ export function createFakeStore() {
   const categories = new Map<string, Category>();
   const products = new Map<string, Product>();
   let settings: StoreSettings | null = null;
+  /** The published copy (ticket 15): plain copies of the maps above, or null. */
+  let published: {
+    categories: Category[];
+    products: Product[];
+    settings: StoreSettings | null;
+    publishedAt: Date;
+  } | null = null;
   /** Makes the next repo write throw, to test what happens when a save fails. */
   let failNext: Error | null = null;
 
@@ -188,7 +197,9 @@ export function createFakeStore() {
       return existing;
     },
     async isImageInUse(url) {
-      return [...products.values()].some((p) => p.imageUrl === url);
+      return [...products.values(), ...(published?.products ?? [])].some(
+        (p) => p.imageUrl === url,
+      );
     },
   };
 
@@ -200,6 +211,104 @@ export function createFakeStore() {
       maybeFail();
       settings = { ...values, updatedAt: new Date() };
       return settings;
+    },
+  };
+
+  const withoutTimestamps = <T extends object>(rows: T[]) =>
+    rows
+      .map(
+        ({
+          createdAt: _c,
+          updatedAt: _u,
+          ...rest
+        }: T & {
+          createdAt?: Date;
+          updatedAt?: Date;
+        }) => rest,
+      )
+      .sort((a, b) =>
+        String((a as { id?: string }).id).localeCompare(
+          String((b as { id?: string }).id),
+        ),
+      );
+  const comparable = (store: {
+    categories: Category[];
+    products: Product[];
+    settings: StoreSettings | null;
+  }) =>
+    JSON.stringify({
+      categories: withoutTimestamps(store.categories),
+      products: withoutTimestamps(store.products),
+      settings: store.settings && withoutTimestamps([store.settings])[0],
+    });
+
+  const publishRepo: PublishRepo = {
+    async getPublished(): Promise<PublishedStore | null> {
+      if (!published) return null;
+      const snapshot = published;
+      const ordered = [...snapshot.categories].sort(
+        (a, b) => a.sortOrder - b.sortOrder || a.name.localeCompare(b.name),
+      );
+      const byId = new Map(ordered.map((c) => [c.id, c]));
+      const productList = snapshot.products
+        .filter((p) => byId.has(p.categoryId))
+        .map((p) => {
+          const c = byId.get(p.categoryId)!;
+          return {
+            ...p,
+            category: {
+              id: c.id,
+              slug: c.slug,
+              name: c.name,
+              icon: c.icon,
+              sortOrder: c.sortOrder,
+            },
+          };
+        })
+        .sort(
+          (a, b) =>
+            a.category.sortOrder - b.category.sortOrder ||
+            a.sortOrder - b.sortOrder ||
+            a.name.localeCompare(b.name),
+        );
+      return {
+        categories: ordered.map((c) => ({
+          ...c,
+          productCount: productList.filter((p) => p.categoryId === c.id).length,
+        })),
+        products: productList,
+        settings: snapshot.settings,
+        publishedAt: snapshot.publishedAt,
+      };
+    },
+    async publish() {
+      maybeFail();
+      published = {
+        categories: [...categories.values()].map((c) => ({ ...c })),
+        products: [...products.values()].map((p) => ({ ...p })),
+        settings: settings && { ...settings },
+        publishedAt: clock.now(),
+      };
+    },
+    async discard() {
+      if (!published) return false;
+      maybeFail();
+      categories.clear();
+      products.clear();
+      for (const c of published.categories) categories.set(c.id, { ...c });
+      for (const p of published.products) products.set(p.id, { ...p });
+      if (published.settings) settings = { ...published.settings };
+      return true;
+    },
+    async hasUnpublishedChanges() {
+      if (!published) return true;
+      return (
+        comparable({
+          categories: [...categories.values()],
+          products: [...products.values()],
+          settings,
+        }) !== comparable(published)
+      );
     },
   };
 
@@ -283,6 +392,7 @@ export function createFakeStore() {
     categoryRepo,
     productRepo,
     settingsRepo,
+    publishRepo,
     adminUserRepo,
     loginAttemptRepo,
     loginAttempts,

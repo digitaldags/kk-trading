@@ -5,6 +5,7 @@ import "./tokens.css";
 import "./typography.css";
 import "./globals.css";
 import { SnackbarProvider } from "@/components/ui/Snackbar";
+import { siteUrl } from "@/lib/site";
 
 const roboto = Roboto({
   weight: ["400", "500"],
@@ -28,7 +29,10 @@ const materialSymbols = localFont({
   adjustFontFallback: false,
 });
 
+// Pages set their own titles and descriptions from the store settings. `metadataBase`
+// makes canonical and Open Graph URLs absolute (NEXT_PUBLIC_SITE_URL, see lib/site.ts).
 export const metadata: Metadata = {
+  metadataBase: new URL(siteUrl()),
   title: "KK Trading",
   description:
     "Office furniture and fitness gear for homes, offices and training spaces.",

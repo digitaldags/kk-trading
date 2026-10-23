@@ -2,6 +2,7 @@ import { describeError, loadDatabaseUrl } from "@/lib/db/env";
 import {
   categoryService,
   productService,
+  publishService,
   settingsService,
 } from "@/lib/services";
 
@@ -10,6 +11,8 @@ import {
 // - Products named "E2E …" (e2e/admin-products.spec.ts), photos included.
 // - Categories named "E2E …" (e2e/admin-categories.spec.ts). They never keep products.
 // - A store name ending in " E2E" (e2e/admin-settings.spec.ts), put back without it.
+// If it removed anything, it publishes, so the storefront drops it too. On the dev branch
+// that also publishes any other draft; the e2e specs publish anyway.
 
 /** What e2e/admin-settings.spec.ts appends to the store name. */
 const E2E_NAME_SUFFIX = " E2E";
@@ -38,8 +41,11 @@ async function main() {
     renamed = true;
   }
 
+  const changed = leftovers.length > 0 || categories.length > 0 || renamed;
+  if (changed) await publishService.publish();
+
   console.log(
-    `Deleted ${leftovers.length} e2e products and ${categories.length} e2e categories${renamed ? ", and restored the store name" : ""}.`,
+    `Deleted ${leftovers.length} e2e products and ${categories.length} e2e categories${renamed ? ", and restored the store name" : ""}${changed ? ", then published" : ""}.`,
   );
 }
 

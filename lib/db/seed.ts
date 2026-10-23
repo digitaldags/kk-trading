@@ -1,9 +1,16 @@
 import { hash } from "@node-rs/argon2";
-import { inArray, sql } from "drizzle-orm";
+import { eq, inArray, sql } from "drizzle-orm";
 import { MIN_ADMIN_PASSWORD_LENGTH } from "@/lib/domain/schemas";
 import { slugify } from "@/lib/domain/slug";
 import type { Db } from "./client";
-import { adminUsers, categories, products, storeSettings } from "./schema";
+import { publishLiveTables } from "./publish";
+import {
+  adminUsers,
+  categories,
+  products,
+  publishedSnapshot,
+  storeSettings,
+} from "./schema";
 import { SEED_CATEGORIES, SEED_PRODUCTS, SEED_SETTINGS } from "./seed-data";
 
 export type SeedAdmin = { email: string; password: string };
@@ -13,12 +20,18 @@ export type SeedResult = {
   categories: number;
   products: number;
   admins: number;
+  /** Whether the seed published the store (only on a database never published with data). */
+  published: boolean;
 };
 
 /**
  * Inserts the prototype content and the first admin. Rows that already exist (by slug,
  * id 1 or email) are left alone, so running it again changes nothing and never
  * overwrites edits made in admin. Returns how many rows were inserted.
+ *
+ * On a fresh database it also publishes, so the storefront shows the seed. It never
+ * publishes once a store with settings has been published: that would put someone's
+ * unpublished edits live.
  */
 export async function seed(
   db: Db,
@@ -74,11 +87,21 @@ export async function seed(
 
   const admins = admin ? await seedAdmin(db, admin) : 0;
 
+  const [snapshot] = await db
+    .select({
+      hasSettings: sql<boolean>`${publishedSnapshot.data}->'settings' is not null and ${publishedSnapshot.data}->'settings' <> 'null'::jsonb`,
+    })
+    .from(publishedSnapshot)
+    .where(eq(publishedSnapshot.id, 1));
+  const published = !snapshot?.hasSettings;
+  if (published) await publishLiveTables(db);
+
   return {
     settings: settingsRows.length,
     categories: categoryRows.length,
     products: productRows.length,
     admins,
+    published,
   };
 }
 

@@ -1,6 +1,9 @@
 .region {
   position: fixed;
-  bottom: calc(16px + env(safe-area-inset-bottom, 0px));
+  /* --snackbar-offset: room for a bar along the bottom, e.g. the admin Publish bar. */
+  bottom: calc(
+    16px + var(--snackbar-offset, 0px) + env(safe-area-inset-bottom, 0px)
+  );
   left: 50%;
   z-index: 60;
   transform: translateX(-50%);

@@ -37,7 +37,10 @@ export function createProductService(deps: {
   const logError = deps.logError ?? console.error;
 
   // Called after the database write succeeded, so a failure here only leaves an orphan blob.
+  // A photo the published store still shows (or another product uses) stays until a
+  // publish no longer needs it; publishService deletes it then.
   async function deleteImage(url: string) {
+    if (await deps.products.isImageInUse(url)) return;
     try {
       await deps.imageStore.delete(url);
     } catch (error) {
@@ -80,7 +83,6 @@ export function createProductService(deps: {
      */
     async discardUnusedImage(url: string): Promise<void> {
       if (!isProductImageUrl(url)) return;
-      if (await deps.products.isImageInUse(url)) return;
       await deleteImage(url);
     },
 

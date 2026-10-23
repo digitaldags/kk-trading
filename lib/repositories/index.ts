@@ -3,12 +3,14 @@ import { createAdminUserRepo } from "./adminUserRepo";
 import { createCategoryRepo } from "./categoryRepo";
 import { createLoginAttemptRepo } from "./loginAttemptRepo";
 import { createProductRepo } from "./productRepo";
+import { createPublishRepo } from "./publishRepo";
 import { createSettingsRepo } from "./settingsRepo";
 import type {
   AdminUserRepo,
   CategoryRepo,
   LoginAttemptRepo,
   ProductRepo,
+  PublishRepo,
   SettingsRepo,
 } from "./types";
 
@@ -35,3 +37,4 @@ export const adminUserRepo = lazy<AdminUserRepo>(() =>
 export const loginAttemptRepo = lazy<LoginAttemptRepo>(() =>
   createLoginAttemptRepo(getDb()),
 );
+export const publishRepo = lazy<PublishRepo>(() => createPublishRepo(getDb()));

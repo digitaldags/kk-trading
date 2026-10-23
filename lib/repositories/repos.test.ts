@@ -1,11 +1,16 @@
 import type { PGlite } from "@electric-sql/pglite";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import type { Db } from "@/lib/db/client";
-import { createSeededTestDb, TEST_ADMIN } from "@/lib/db/testing/pglite";
+import {
+  createSeededTestDb,
+  createTestDb,
+  TEST_ADMIN,
+} from "@/lib/db/testing/pglite";
 import { createAdminUserRepo } from "./adminUserRepo";
 import { createCategoryRepo } from "./categoryRepo";
 import { createLoginAttemptRepo } from "./loginAttemptRepo";
 import { createProductRepo } from "./productRepo";
+import { createPublishRepo } from "./publishRepo";
 import { createSettingsRepo } from "./settingsRepo";
 
 // The repositories' SQL against real Postgres (PGlite), with the seed loaded.
@@ -181,6 +186,135 @@ describe("categoryRepo.setSortOrders", () => {
       ]);
     } finally {
       await freshClient.close();
+    }
+  });
+});
+
+describe("publishRepo (draft and publish)", () => {
+  async function withFreshDb(
+    run: (repos: {
+      publish: ReturnType<typeof createPublishRepo>;
+      products: ReturnType<typeof createProductRepo>;
+      categories: ReturnType<typeof createCategoryRepo>;
+      settings: ReturnType<typeof createSettingsRepo>;
+    }) => Promise<void>,
+  ) {
+    const own = await createSeededTestDb();
+    try {
+      await run({
+        publish: createPublishRepo(own.db),
+        products: createProductRepo(own.db),
+        categories: createCategoryRepo(own.db),
+        settings: createSettingsRepo(own.db),
+      });
+    } finally {
+      await own.client.close();
+    }
+  }
+
+  it("the seed publishes a fresh database, and the copy reads back as domain types", async () => {
+    await withFreshDb(async ({ publish, products }) => {
+      const published = await publish.getPublished();
+      expect(published?.settings?.name).toBe("KK Trading");
+      expect(
+        published?.categories.map((c) => [c.slug, c.productCount]),
+      ).toEqual([
+        ["office", 4],
+        ["gym", 4],
+      ]);
+      // Same products, same order, same fields as the live tables.
+      expect(published?.products).toEqual(await products.listWithCategory());
+      expect(await publish.hasUnpublishedChanges()).toBe(false);
+    });
+  });
+
+  it("keeps showing the published copy until the draft is published", async () => {
+    await withFreshDb(async ({ publish, products, settings }) => {
+      const [chair] = await products.listWithCategory({ q: "mesh chair" });
+      await products.update(chair!.id, { name: "Mesh office chair" });
+      const current = await settings.get();
+      const { updatedAt: _, ...values } = current!;
+      await settings.update({ ...values, name: "KK Trading PH" });
+
+      expect(await publish.hasUnpublishedChanges()).toBe(true);
+      let published = await publish.getPublished();
+      expect(published?.products[0]?.name).toBe("Ergonomic mesh chair");
+      expect(published?.settings?.name).toBe("KK Trading");
+
+      await publish.publish();
+      published = await publish.getPublished();
+      expect(published?.products[0]?.name).toBe("Mesh office chair");
+      expect(published?.settings?.name).toBe("KK Trading PH");
+      expect(await publish.hasUnpublishedChanges()).toBe(false);
+    });
+  });
+
+  it("ignores a save that only moves the timestamps", async () => {
+    await withFreshDb(async ({ publish, categories }) => {
+      const [office] = await categories.list();
+      await categories.update(office!.id, { name: office!.name });
+      expect(await publish.hasUnpublishedChanges()).toBe(false);
+    });
+  });
+
+  it("discard restores a deleted category with its products, and drops what was added", async () => {
+    await withFreshDb(async ({ publish, products, categories }) => {
+      const before = await products.listWithCategory();
+      const gym = await categories.findBySlug("gym");
+      const office = await categories.findBySlug("office");
+      await categories.moveProductsAndDelete(gym!.id, office!.id);
+      await products.insert({
+        slug: "added-since",
+        categoryId: office!.id,
+        name: "Added since",
+        priceCentavos: 100,
+        stockStatus: "in_stock",
+        keySpec: "",
+        description: "",
+        imageUrl: null,
+        imagePathname: null,
+        isSample: false,
+        sortOrder: 99,
+      });
+      expect(await publish.hasUnpublishedChanges()).toBe(true);
+
+      expect(await publish.discard()).toBe(true);
+      expect(await products.listWithCategory()).toEqual(before);
+      expect((await categories.findBySlug("gym"))?.id).toBe(gym!.id);
+      expect(await publish.hasUnpublishedChanges()).toBe(false);
+    });
+  });
+
+  it("finds a photo only the published copy still shows", async () => {
+    await withFreshDb(async ({ publish, products }) => {
+      const url =
+        "https://store.public.blob.vercel-storage.com/products/published.webp";
+      const [first] = await products.listWithCategory();
+      await products.update(first!.id, {
+        imageUrl: url,
+        imagePathname: "products/published.webp",
+      });
+      await publish.publish();
+      await products.update(first!.id, { imageUrl: null, imagePathname: null });
+      expect(await products.isImageInUse(url)).toBe(true);
+      await publish.publish();
+      expect(await products.isImageInUse(url)).toBe(false);
+    });
+  });
+});
+
+describe("the published_snapshot migration", () => {
+  it("starts an empty database with an empty published copy", async () => {
+    const { db: empty, client: emptyClient } = await createTestDb();
+    try {
+      const published = await createPublishRepo(empty).getPublished();
+      expect(published).toMatchObject({
+        categories: [],
+        products: [],
+        settings: null,
+      });
+    } finally {
+      await emptyClient.close();
     }
   });
 });

@@ -66,8 +66,33 @@ export interface ProductRepo {
   update(id: string, patch: ProductPatch): Promise<Product | null>;
   /** Returns the deleted product, or null if it didn't exist. */
   delete(id: string): Promise<Product | null>;
-  /** Whether any product shows this photo. */
+  /** Whether any product shows this photo, in the draft or in the published store. */
   isImageInUse(url: string): Promise<boolean>;
+}
+
+/** What the storefront shows: the last published copy of the store (ticket 15). */
+export type PublishedStore = {
+  /** In storefront order, with how many published products each has. */
+  categories: CategoryWithCount[];
+  /** Ordered like `ProductRepo.listWithCategory`. */
+  products: ProductWithCategory[];
+  /** Null only if nothing had been seeded when the store was published. */
+  settings: StoreSettings | null;
+  publishedAt: Date;
+};
+
+export interface PublishRepo {
+  /** Null until the first publish. */
+  getPublished(): Promise<PublishedStore | null>;
+  /** Copies the live tables (the draft) into the published snapshot, atomically. */
+  publish(): Promise<void>;
+  /**
+   * Puts the live tables back to the published snapshot, in one transaction. False (and
+   * nothing changes) when nothing was ever published.
+   */
+  discard(): Promise<boolean>;
+  /** Whether the draft differs from the snapshot, ignoring timestamps. */
+  hasUnpublishedChanges(): Promise<boolean>;
 }
 
 export type SettingsValues = Omit<StoreSettings, "updatedAt">;

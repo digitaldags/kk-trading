@@ -15,7 +15,8 @@ async function main() {
   const inserted = await seed(db, admin);
   console.log(
     `Inserted ${inserted.settings} settings row, ${inserted.categories} categories, ` +
-      `${inserted.products} products and ${inserted.admins} admin.`,
+      `${inserted.products} products and ${inserted.admins} admin.` +
+      (inserted.published ? " Published the store." : ""),
   );
 
   if (!admin) {

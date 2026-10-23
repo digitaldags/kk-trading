@@ -1,7 +1,7 @@
 import { expect, test, type Page } from "@playwright/test";
 
-// These read the seeded database. They run locally against the Neon dev branch and skip
-// in CI until ticket 14 adds a test database.
+// These read the seeded database: locally the Neon dev branch, in CI a throwaway Neon
+// branch (README › Tests). They skip without DATABASE_URL.
 test.skip(!process.env.DATABASE_URL, "Needs DATABASE_URL (a seeded database).");
 
 const card = (page: Page, name: string) =>
@@ -232,7 +232,7 @@ test.describe("product page", () => {
   }) => {
     const response = await page.goto("/products/ergonomic-mesh-chair");
     expect(response?.status()).toBe(200);
-    await expect(page).toHaveTitle("Ergonomic mesh chair | KK Trading");
+    await expect(page).toHaveTitle("Ergonomic mesh chair · KK Trading");
     await expect(
       page.getByRole("heading", { level: 1, name: "Ergonomic mesh chair" }),
     ).toBeVisible();
@@ -254,16 +254,25 @@ test.describe("product page", () => {
     ).toBeInViewport();
   });
 
-  test("an unknown or malformed slug is a 404", async ({ page }) => {
+  // The page, not the status: on a production build the prerendered shell is sent
+  // (with 200) before the product lookup runs, so Next can't change it to 404. It adds
+  // `noindex` instead, so search engines still drop the URL. See README › Tests.
+  test("an unknown or malformed slug shows Page not found, marked noindex", async ({
+    page,
+  }) => {
     for (const path of [
       "/products/no-such-product",
       "/products/Not%20A%20Slug",
     ]) {
       const response = await page.goto(path);
-      expect(response?.status(), path).toBe(404);
+      expect([200, 404], path).toContain(response?.status());
       await expect(
         page.getByRole("heading", { level: 1, name: "Page not found" }),
       ).toBeVisible();
+      await expect(page.locator('meta[name="robots"]').first()).toHaveAttribute(
+        "content",
+        /noindex/,
+      );
     }
   });
 

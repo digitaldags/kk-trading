@@ -60,3 +60,6 @@ export type PasswordField = keyof PasswordChangeInput;
 export type ChangePasswordAction = (
   input: PasswordChangeInput,
 ) => Promise<SaveResult<PasswordField>>;
+
+/** Publish or Discard (ticket 15). */
+export type PublishAction = () => Promise<ActionMessage>;
