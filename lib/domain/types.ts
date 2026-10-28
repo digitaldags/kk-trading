@@ -1,3 +1,4 @@
+import type { DeliveryState, QuotationStatus } from "./documents";
 import type { StockStatus } from "./stock";
 import type { Uom } from "./uom";
 
@@ -70,3 +71,80 @@ export type AdminUser = {
 
 /** The signed-in admin, as pages and actions see it. Never carries the password hash. */
 export type AdminSession = Pick<AdminUser, "id" | "email">;
+
+// Quotations and delivery receipts (ticket 18). Dates are "YYYY-MM-DD": a document's
+// date is a calendar day, not an instant, so it never shifts with the time zone.
+
+export type Quotation = {
+  id: string;
+  /** Typed by the admin. Unique, ignoring case. */
+  number: string;
+  status: QuotationStatus;
+  quoteDate: string;
+  customerName: string;
+  customerAddress: string;
+  customerTin: string;
+  deliveryAddress: string;
+  deliveryTerm: string;
+  paymentTerms: string;
+  /** The one-line remark, e.g. "PRICES ARE VAT-EXCLUSIVE". */
+  remarks: string;
+  leadTime: string;
+  /** The REMARKS block. */
+  notes: string;
+  acknowledgement: string;
+  completedAt: Date | null;
+  declinedAt: Date | null;
+  createdAt: Date;
+  updatedAt: Date;
+};
+
+/** A quotation line: its own copy of what it prints, taken from the product when added. */
+export type QuotationItem = {
+  id: string;
+  quotationId: string;
+  position: number;
+  /** The product it came from. Not a foreign key: the product may be gone or restored. */
+  productId: string;
+  code: string;
+  name: string;
+  specs: string;
+  uom: Uom;
+  imageUrl: string | null;
+  unitPriceCentavos: number;
+  quantity: number;
+};
+
+export type QuotationWithItems = Quotation & { items: QuotationItem[] };
+
+/** A row of the documents list. */
+export type QuotationSummary = Pick<
+  Quotation,
+  "id" | "number" | "status" | "quoteDate" | "customerName" | "updatedAt"
+> & {
+  itemCount: number;
+  grandTotalCentavos: number;
+  deliveryState: DeliveryState;
+};
+
+export type DeliveryReceipt = {
+  id: string;
+  quotationId: string;
+  /** Typed by the admin. Unique among receipts, ignoring case; may equal a quotation's. */
+  number: string;
+  receiptDate: string;
+  deliveryAddress: string;
+  createdAt: Date;
+};
+
+export type DeliveryReceiptItem = {
+  id: string;
+  quotationItemId: string;
+  quantity: number;
+  /** The quotation line it delivers, which it prints. */
+  line: QuotationItem;
+};
+
+export type DeliveryReceiptWithItems = DeliveryReceipt & {
+  items: DeliveryReceiptItem[];
+};

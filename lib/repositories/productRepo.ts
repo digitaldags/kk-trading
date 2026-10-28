@@ -119,7 +119,8 @@ export function createProductRepo(db: Db): ProductRepo {
     },
 
     // The published snapshot counts too: until the next publish, the storefront still
-    // shows a photo the draft has replaced or removed.
+    // shows a photo the draft has replaced or removed. So do quotation lines (ticket 18),
+    // which keep printing the photo they copied after the product changes or goes.
     async isImageInUse(url) {
       const [row] = await db
         .select({ id: products.id })
@@ -127,16 +128,21 @@ export function createProductRepo(db: Db): ProductRepo {
         .where(eq(products.imageUrl, url))
         .limit(1);
       if (row) return true;
-      const published = await queryRows(
+      const [elsewhere] = await queryRows<{ used: boolean }>(
         db,
         sql`
-          select 1 from published_snapshot ps,
-            jsonb_array_elements(ps.data->'products') p
-          where ps.id = 1 and p->>'image_url' = ${url}
-          limit 1
+          select
+            exists (
+              select 1 from published_snapshot ps,
+                jsonb_array_elements(ps.data->'products') p
+              where ps.id = 1 and p->>'image_url' = ${url}
+            )
+            or exists (
+              select 1 from quotation_items qi where qi.image_url = ${url}
+            ) as used
         `,
       );
-      return published.length > 0;
+      return elsewhere?.used === true;
     },
   };
 }
