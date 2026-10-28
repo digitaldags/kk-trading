@@ -21,6 +21,8 @@ const PHOTO_B = {
 
 const input = (overrides: Partial<ProductInput> = {}): ProductInput => ({
   name: "Ergonomic mesh chair",
+  code: "KK-CHAIR-01",
+  uom: "pcs",
   categoryId: office.id,
   price: "₱8,950",
   stockStatus: "in_stock",
@@ -64,8 +66,12 @@ describe("productService.create", () => {
 
   it("adds -2 and -3 to the slug when the name is taken", async () => {
     await created();
-    expect((await created()).slug).toBe("ergonomic-mesh-chair-2");
-    expect((await created()).slug).toBe("ergonomic-mesh-chair-3");
+    expect((await created({ code: "KK-CHAIR-02" })).slug).toBe(
+      "ergonomic-mesh-chair-2",
+    );
+    expect((await created({ code: "KK-CHAIR-03" })).slug).toBe(
+      "ergonomic-mesh-chair-3",
+    );
   });
 
   it("returns typed field errors for invalid input and writes nothing", async () => {
@@ -105,8 +111,71 @@ describe("productService.create", () => {
 
   it("adds new products after the existing ones", async () => {
     const first = await created();
-    const second = await created({ name: "Dual monitor arm" });
+    const second = await created({ name: "Dual monitor arm", code: "KK-ARM" });
     expect(second.sortOrder).toBeGreaterThan(first.sortOrder);
+  });
+
+  it("stores the code, unit and specs as the schema normalizes them", async () => {
+    const product = await created({
+      code: "  KK   CHAIR 01 ",
+      uom: "set",
+      specs: "  Seat height 44–54 cm \n\n 3D armrests\n",
+    });
+    expect(product).toMatchObject({
+      code: "KK CHAIR 01",
+      uom: "set",
+      specs: "Seat height 44–54 cm\n3D armrests",
+    });
+  });
+
+  it("requires a known unit of measure", async () => {
+    const result = await service.create(input({ uom: "box" as "pcs" }));
+    expect(result).toEqual({
+      ok: false,
+      fieldErrors: { uom: "Choose a unit of measure." },
+    });
+    expect(store.products.size).toBe(0);
+  });
+
+  it("lets any number of products go without a code", async () => {
+    const first = await created({ code: " " });
+    const second = await created({ name: "Desk lamp", code: undefined });
+    expect([first.code, second.code]).toEqual(["", ""]);
+    const updated = await service.update(second.id, input({ code: "" }));
+    expect(updated.ok).toBe(true);
+  });
+
+  it("rejects a code another product uses, ignoring case, and writes nothing", async () => {
+    await created();
+    const result = await service.create(
+      input({ name: "Another chair", code: "kk-chair-01" }),
+    );
+    expect(result).toEqual({
+      ok: false,
+      fieldErrors: { code: "Another product already uses this code." },
+    });
+    expect(store.products.size).toBe(1);
+  });
+
+  it("returns the same field error when the unique index wins a race", async () => {
+    await created();
+    // The check finds nothing (as if the other save hadn't landed yet); the insert fails.
+    vi.spyOn(store.productRepo, "findByCode").mockResolvedValueOnce(null);
+    const result = await service.create(
+      input({ name: "Another chair", code: "KK-CHAIR-01" }),
+    );
+    expect(result).toEqual({
+      ok: false,
+      fieldErrors: { code: "Another product already uses this code." },
+    });
+    expect(store.products.size).toBe(1);
+  });
+
+  it("rethrows other database errors", async () => {
+    store.failNextWrite();
+    await expect(service.create(input())).rejects.toThrow(
+      "Simulated database failure",
+    );
   });
 });
 
@@ -200,6 +269,48 @@ describe("productService.update", () => {
       ok: false,
       formError: "That product no longer exists.",
     });
+  });
+
+  it("keeps its own code, even with different case", async () => {
+    const product = await created();
+    const result = await service.update(
+      product.id,
+      input({ code: "kk-chair-01" }),
+    );
+    expect(result.ok && result.data.code).toBe("kk-chair-01");
+  });
+
+  it("rejects another product's code and changes nothing", async () => {
+    await created();
+    const arm = await created({ name: "Dual monitor arm", code: "KK-ARM-01" });
+    const result = await service.update(
+      arm.id,
+      input({ name: "Dual monitor arm", code: "KK-Chair-01", price: "1" }),
+    );
+    expect(result).toEqual({
+      ok: false,
+      fieldErrors: { code: "Another product already uses this code." },
+    });
+    expect(store.products.get(arm.id)).toMatchObject({
+      code: "KK-ARM-01",
+      priceCentavos: 895000,
+    });
+  });
+
+  it("returns the field error when the unique index refuses an update", async () => {
+    await created({ image: PHOTO_A, code: "KK-CHAIR-01" });
+    const arm = await created({ name: "Dual monitor arm", code: "KK-ARM-01" });
+    vi.spyOn(store.productRepo, "findByCode").mockResolvedValueOnce(null);
+    const result = await service.update(
+      arm.id,
+      input({ name: "Dual monitor arm", code: "KK-CHAIR-01", image: null }),
+    );
+    expect(result).toEqual({
+      ok: false,
+      fieldErrors: { code: "Another product already uses this code." },
+    });
+    expect(store.products.get(arm.id)?.code).toBe("KK-ARM-01");
+    expect(store.imageStore.deleted).toEqual([]);
   });
 });
 
@@ -307,6 +418,13 @@ describe("productService.listForAdmin", () => {
       totalCount: 2,
       sampleCount: 1,
     });
+  });
+
+  it("searches the product code too", async () => {
+    const [, barbell] = (await service.listForAdmin()).products;
+    await store.productRepo.update(barbell!.id, { code: "KK-BAR-01" });
+    const result = await service.listForAdmin({ q: "kk-bar" });
+    expect(result.products.map((p) => p.name)).toEqual(["Olympic barbell"]);
   });
 });
 

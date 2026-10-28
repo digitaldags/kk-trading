@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { SettingsAdmin } from "@/components/admin/SettingsAdmin";
 import { requireAdmin } from "@/lib/auth/requireAdmin";
 import { settingsService } from "@/lib/services";
-import { changePassword, saveStoreDetails } from "./actions";
+import { changePassword, discardLogo, saveStoreDetails } from "./actions";
 
 // Reads the session cookie, so it renders per request and blocks until it's checked.
 export const instant = false;
@@ -20,6 +20,7 @@ export default async function SettingsPage() {
     <SettingsAdmin
       settings={settings}
       saveDetailsAction={saveStoreDetails}
+      discardLogoAction={discardLogo}
       changePasswordAction={changePassword}
     />
   );

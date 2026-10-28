@@ -5,9 +5,11 @@ import {
   ok,
   type ServiceResult,
 } from "@/lib/domain/result";
+import { ProductCodeTakenError } from "@/lib/domain/errors";
 import {
   isId,
   MAX_SEARCH_LENGTH,
+  PRODUCT_CODE_TAKEN,
   PRODUCT_NOT_FOUND,
   productInputSchema,
   type ProductInput,
@@ -48,6 +50,31 @@ export function createProductService(deps: {
     }
   }
 
+  /**
+   * Whether a product other than `exceptId` already has this code, ignoring case. The
+   * code is optional, so any number of products can have none.
+   */
+  async function codeTaken(code: string, exceptId?: string) {
+    if (!code) return false;
+    const other = await deps.products.findByCode(code);
+    return other !== null && other.id !== exceptId;
+  }
+
+  /**
+   * Runs a write, turning a lost race for the code (the unique index) into the same
+   * field error as the check before it.
+   */
+  async function guardCode<T>(
+    write: () => Promise<T>,
+  ): Promise<{ ok: true; value: T } | { ok: false }> {
+    try {
+      return { ok: true, value: await write() };
+    } catch (error) {
+      if (error instanceof ProductCodeTakenError) return { ok: false };
+      throw error;
+    }
+  }
+
   return {
     /** One product for the editor, or null when the id is unknown or malformed. */
     async get(id: string): Promise<Product | null> {
@@ -55,7 +82,7 @@ export function createProductService(deps: {
     },
 
     /**
-     * The admin list: every product, or those whose name or key spec contains `q`
+     * The admin list: every product, or those whose name, code or key spec contains `q`
      * (ignoring case), with the totals the page needs whatever the search.
      */
     async listForAdmin({ q }: { q?: string } = {}): Promise<{
@@ -67,7 +94,9 @@ export function createProductService(deps: {
       const needle = (q ?? "").trim().slice(0, MAX_SEARCH_LENGTH).toLowerCase();
       const products = needle
         ? all.filter((p) =>
-            `${p.name} ${p.keySpec}`.toLowerCase().includes(needle),
+            [p.name, p.code, p.keySpec].some((t) =>
+              t.toLowerCase().includes(needle),
+            ),
           )
         : all;
       return {
@@ -99,22 +128,29 @@ export function createProductService(deps: {
       if (image && !isProductImageUrl(image.url)) {
         return fieldError("image", BAD_IMAGE);
       }
+      if (await codeTaken(values.code)) {
+        return fieldError("code", PRODUCT_CODE_TAKEN);
+      }
 
       const base = slugify(values.name, "product");
       const slug = uniqueSlug(
         base,
         await deps.products.slugsStartingWith(base),
       );
-      const product = await deps.products.insert({
-        ...values,
-        slug,
-        priceCentavos: price,
-        imageUrl: image?.url ?? null,
-        imagePathname: image?.pathname ?? null,
-        isSample: false,
-        sortOrder: (await deps.products.maxSortOrder()) + 1,
-      });
-      return ok(product);
+      const sortOrder = (await deps.products.maxSortOrder()) + 1;
+      const inserted = await guardCode(() =>
+        deps.products.insert({
+          ...values,
+          slug,
+          priceCentavos: price,
+          imageUrl: image?.url ?? null,
+          imagePathname: image?.pathname ?? null,
+          isSample: false,
+          sortOrder,
+        }),
+      );
+      if (!inserted.ok) return fieldError("code", PRODUCT_CODE_TAKEN);
+      return ok(inserted.value);
     },
 
     /**
@@ -138,6 +174,9 @@ export function createProductService(deps: {
       if (image && !isProductImageUrl(image.url)) {
         return fieldError("image", BAD_IMAGE);
       }
+      if (await codeTaken(values.code, id)) {
+        return fieldError("code", PRODUCT_CODE_TAKEN);
+      }
 
       const patch: ProductPatch = {
         ...values,
@@ -149,7 +188,9 @@ export function createProductService(deps: {
         patch.imagePathname = image?.pathname ?? null;
       }
 
-      const product = await deps.products.update(id, patch);
+      const updated = await guardCode(() => deps.products.update(id, patch));
+      if (!updated.ok) return fieldError("code", PRODUCT_CODE_TAKEN);
+      const product = updated.value;
       if (!product) return formError(PRODUCT_NOT_FOUND);
 
       // Delete the replaced or removed photo only once the new row is saved.

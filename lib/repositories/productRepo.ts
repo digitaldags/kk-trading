@@ -2,8 +2,25 @@ import { and, asc, eq, ilike, like, max, or, sql, type SQL } from "drizzle-orm";
 import type { Db } from "@/lib/db/client";
 import { queryRows } from "@/lib/db/publish";
 import { categories, products } from "@/lib/db/schema";
+import { ProductCodeTakenError } from "@/lib/domain/errors";
 import { escapeLike } from "./like";
+import { isUniqueViolation } from "./pgError";
 import type { ProductRepo } from "./types";
+
+/**
+ * The backstop for two saves racing for the same code: the service checks first, the
+ * unique index decides. Anything else is rethrown as is.
+ */
+async function guardCode<T>(write: () => Promise<T>): Promise<T> {
+  try {
+    return await write();
+  } catch (error) {
+    if (isUniqueViolation(error, "products_code_lower_idx")) {
+      throw new ProductCodeTakenError();
+    }
+    throw error;
+  }
+}
 
 const productCategory = {
   id: categories.id,
@@ -54,6 +71,15 @@ export function createProductRepo(db: Db): ProductRepo {
       return row ? { ...row.product, category: row.category } : null;
     },
 
+    async findByCode(code) {
+      const [row] = await db
+        .select()
+        .from(products)
+        .where(sql`lower(${products.code}) = lower(${code})`)
+        .limit(1);
+      return row ?? null;
+    },
+
     async slugsStartingWith(prefix) {
       const rows = await db
         .select({ slug: products.slug })
@@ -70,17 +96,17 @@ export function createProductRepo(db: Db): ProductRepo {
     },
 
     async insert(values) {
-      const [row] = await db.insert(products).values(values).returning();
+      const [row] = await guardCode(() =>
+        db.insert(products).values(values).returning(),
+      );
       if (!row) throw new Error("Product insert returned no row.");
       return row;
     },
 
     async update(id, patch) {
-      const [row] = await db
-        .update(products)
-        .set(patch)
-        .where(eq(products.id, id))
-        .returning();
+      const [row] = await guardCode(() =>
+        db.update(products).set(patch).where(eq(products.id, id)).returning(),
+      );
       return row ?? null;
     },
 

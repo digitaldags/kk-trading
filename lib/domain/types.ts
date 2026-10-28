@@ -1,4 +1,5 @@
 import type { StockStatus } from "./stock";
+import type { Uom } from "./uom";
 
 export type Category = {
   id: string;
@@ -19,6 +20,11 @@ export type Product = {
   slug: string;
   categoryId: string;
   name: string;
+  /** Printed on quotations and receipts. Optional (empty); unique ignoring case when set. */
+  code: string;
+  uom: Uom;
+  /** One spec per line, printed under the code on documents. */
+  specs: string;
   priceCentavos: number;
   stockStatus: StockStatus;
   keySpec: string;
@@ -40,9 +46,15 @@ export type ProductWithCategory = Product & { category: ProductCategory };
 
 export type StoreSettings = {
   name: string;
+  /** Printed on documents' letterhead, under the name. */
+  slogan: string;
+  /** The logo in Blob under `branding/`, or null. */
+  logoUrl: string | null;
+  logoPathname: string | null;
   headline: string;
   tagline: string;
   phone: string;
+  phone2: string;
   email: string;
   address: string;
   updatedAt: Date;

@@ -1,6 +1,6 @@
 import { execFileSync } from "node:child_process";
 import { expect, test, type Page } from "@playwright/test";
-import { publish } from "./helpers";
+import { codeFor, publish } from "./helpers";
 
 // The core flows from ticket 14, run twice: at 1440×900 (flows-desktop) and 390×844
 // (flows-mobile), see playwright.config.ts. They run after every other spec, one at a
@@ -85,6 +85,7 @@ async function addProduct(
   await page.goto("/admin?new=1");
   const dialog = page.getByRole("dialog", { name: "Add product" });
   await dialog.getByLabel("Product name").fill(name);
+  await dialog.getByLabel("Product code").fill(codeFor(name));
   if (category)
     await dialog.getByLabel("Category").selectOption({ label: category });
   await dialog.getByLabel("Price").fill(price);

@@ -15,6 +15,9 @@ const BENCH: ProductWithCategory = {
   slug: "adjustable-fid-bench",
   categoryId: "00000000-0000-4000-8000-0000000000c1",
   name: "Adjustable FID bench",
+  code: "KK-BENCH-01",
+  uom: "unit",
+  specs: "",
   priceCentavos: 545000,
   stockStatus: "low_stock",
   keySpec: "7 back positions",
@@ -36,6 +39,10 @@ const BENCH: ProductWithCategory = {
 
 const SETTINGS: StoreSettings = {
   name: "KK Trading",
+  slogan: "",
+  logoUrl: null,
+  logoPathname: null,
+  phone2: "",
   headline: "Equipment for the desk and the gym",
   tagline: "Office furniture and fitness gear.",
   phone: "0917 000 0000",

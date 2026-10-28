@@ -23,6 +23,7 @@ export const catalogService = createCatalogService({ published: publishRepo });
 export const publishService = createPublishService({
   publish: publishRepo,
   products: productRepo,
+  settings: settingsRepo,
   imageStore: vercelBlobImageStore,
 });
 
@@ -38,6 +39,7 @@ export const categoryService = createCategoryService({
 
 export const settingsService = createSettingsService({
   settings: settingsRepo,
+  imageStore: vercelBlobImageStore,
 });
 
 export const authService = createAuthService({

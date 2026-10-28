@@ -78,6 +78,54 @@ describe("POST /api/blob/upload", () => {
     expect(response.status).toBe(400);
   });
 
+  /** Runs the route's token check for `pathname`, as handleUpload would. */
+  const tokenFor = (pathname: string) => {
+    requireAdmin.mockResolvedValue({ id: "a", email: "admin" });
+    handleUpload.mockImplementationOnce(async (options: Options) => ({
+      type: "blob.generate-client-token",
+      clientToken: "signed",
+      allowed: await options.onBeforeGenerateToken(pathname),
+    }));
+    return POST(tokenRequest());
+  };
+
+  it("allows the store logo under branding/: PNG, JPEG or WebP up to 5 MB", async () => {
+    for (const name of ["logo.png", "logo.jpg", "logo.webp"]) {
+      const response = await tokenFor(`branding/${name}`);
+      expect(response.status).toBe(200);
+      expect((await response.json()).allowed).toEqual({
+        allowedContentTypes: ["image/webp", "image/jpeg", "image/png"],
+        maximumSizeInBytes: 5 * 1024 * 1024,
+        addRandomSuffix: true,
+      });
+    }
+  });
+
+  it("refuses an SVG or any other type under branding/", async () => {
+    for (const name of ["logo.svg", "logo.gif", "logo.pdf", "logo"]) {
+      const response = await tokenFor(`branding/${name}`);
+      expect(response.status).toBe(400);
+      expect((await response.json()).error).toBe(
+        "Upload a PNG, JPEG or WebP image.",
+      );
+    }
+  });
+
+  it("never lets SVG through the content types it signs", async () => {
+    const response = await tokenFor("branding/logo.png");
+    expect((await response.json()).allowed.allowedContentTypes).not.toContain(
+      "image/svg+xml",
+    );
+  });
+
+  it("refuses a path that only looks like branding/", async () => {
+    const response = await tokenFor("brandings/logo.png");
+    expect(response.status).toBe(400);
+    expect((await response.json()).error).toBe(
+      "Uploads go in products/ or branding/.",
+    );
+  });
+
   it("accepts only token requests", async () => {
     requireAdmin.mockResolvedValue({ id: "a", email: "admin" });
     const response = await POST(

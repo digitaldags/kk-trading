@@ -1,6 +1,6 @@
 import { execFileSync } from "node:child_process";
 import { expect, test, type Page } from "@playwright/test";
-import { publish } from "./helpers";
+import { codeFor, publish } from "./helpers";
 
 // The products admin against the Neon dev branch (and the Blob store in .env.local for
 // the photo test). Each run adds its own products (named with a timestamp) and deletes
@@ -97,15 +97,49 @@ test("adding a product shows it in the list and on the store", async ({
   await expect(page).toHaveURL(/\/admin\?new=1$/);
   const dialog = page.getByRole("dialog", { name: "Add product" });
   await dialog.getByLabel("Product name").fill(NAME);
+  await dialog.getByLabel("Product code").fill(codeFor(NAME));
+  await dialog.getByLabel("Unit of measure").selectOption("set");
   await dialog.getByLabel("Price").fill("1,250");
   await dialog.getByRole("button", { name: "Low stock" }).click();
   await dialog.getByLabel("Key spec").fill("Made by the e2e tests");
+  await dialog
+    .getByLabel("Specifications")
+    .fill("Height 45 cm\n\n  Made by the e2e tests  ");
   await dialog.getByRole("button", { name: "Add product" }).click();
 
   await expect(snackbar(page, `Added ${NAME}.`)).toBeVisible();
   await expect(page).toHaveURL(/\/admin$/);
   await expect(dialog).toBeHidden();
   await expect(row(page, NAME)).toContainText("₱1,250");
+
+  // The admin search also matches the code.
+  await page
+    .getByRole("searchbox", { name: "Search products" })
+    .fill(codeFor(NAME).toLowerCase());
+  await expect(page).toHaveURL(/\?q=/);
+  await expect(row(page, NAME)).toBeVisible();
+  await page.goto("/admin");
+});
+
+test("a code another product uses, in any case, is refused on the field", async ({
+  page,
+}) => {
+  const name = `E2E duplicate ${RUN}`;
+  await page.getByRole("link", { name: "Add product" }).click();
+  const dialog = page.getByRole("dialog", { name: "Add product" });
+  await dialog.getByLabel("Product name").fill(name);
+  await dialog.getByLabel("Product code").fill(codeFor(NAME).toLowerCase());
+  await dialog.getByLabel("Price").fill("10");
+  await dialog.getByRole("button", { name: "Add product" }).click();
+
+  const code = dialog.getByLabel("Product code");
+  await expect(code).toHaveAccessibleDescription(
+    "Another product already uses this code.",
+  );
+  await expect(code).toBeFocused();
+  await dialog.getByRole("button", { name: "Cancel" }).click();
+  await page.getByRole("button", { name: "Discard changes" }).click();
+  await expect(row(page, name)).toHaveCount(0);
 
   // Saves are a draft: the store shows the product once it's published.
   await publish(page);
@@ -224,6 +258,7 @@ test("deleting removes the product from the list and the store", async ({
   await page.getByRole("link", { name: "Add product" }).click();
   const dialog = page.getByRole("dialog", { name: "Add product" });
   await dialog.getByLabel("Product name").fill(name);
+  await dialog.getByLabel("Product code").fill(codeFor(name));
   await dialog.getByLabel("Price").fill("10");
   await dialog.getByRole("button", { name: "Add product" }).click();
   await expect(row(page, name)).toBeVisible();

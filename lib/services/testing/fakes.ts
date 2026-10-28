@@ -1,3 +1,4 @@
+import { ProductCodeTakenError } from "@/lib/domain/errors";
 import type {
   AdminUser,
   Category,
@@ -47,6 +48,15 @@ export function createFakeStore() {
 
   const productsIn = (categoryId: string) =>
     [...products.values()].filter((p) => p.categoryId === categoryId);
+
+  /** The unique index on `lower(code)`, for codes that are filled in. */
+  function checkCode(code: string | undefined, exceptId?: string) {
+    if (!code) return;
+    const taken = [...products.values()].some(
+      (p) => p.id !== exceptId && p.code.toLowerCase() === code.toLowerCase(),
+    );
+    if (taken) throw new ProductCodeTakenError();
+  }
 
   const categoryRepo: CategoryRepo = {
     async list() {
@@ -162,6 +172,13 @@ export function createFakeStore() {
       const all = await productRepo.listWithCategory();
       return all.find((p) => p.slug === slug) ?? null;
     },
+    async findByCode(code) {
+      const lower = code.toLowerCase();
+      return (
+        [...products.values()].find((p) => p.code.toLowerCase() === lower) ??
+        null
+      );
+    },
     async slugsStartingWith(prefix) {
       return [...products.values()]
         .map((p) => p.slug)
@@ -172,6 +189,7 @@ export function createFakeStore() {
     },
     async insert(values) {
       maybeFail();
+      checkCode(values.code);
       const now = new Date();
       const product = {
         ...values,
@@ -186,6 +204,7 @@ export function createFakeStore() {
       maybeFail();
       const existing = products.get(id);
       if (!existing) return null;
+      checkCode(patch.code, id);
       const product = { ...existing, ...patch, updatedAt: new Date() };
       products.set(id, product);
       return product;
@@ -211,6 +230,9 @@ export function createFakeStore() {
       maybeFail();
       settings = { ...values, updatedAt: new Date() };
       return settings;
+    },
+    async isLogoInUse(url) {
+      return settings?.logoUrl === url || published?.settings?.logoUrl === url;
     },
   };
 
@@ -417,6 +439,9 @@ export function createFakeStore() {
     ) {
       return productRepo.insert({
         slug: values.name.toLowerCase().replace(/\W+/g, "-"),
+        code: values.name.toUpperCase().replace(/\W+/g, "-"),
+        uom: "pcs",
+        specs: "",
         priceCentavos: 100000,
         stockStatus: "in_stock",
         keySpec: "",

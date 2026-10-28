@@ -39,6 +39,12 @@ export async function saveStoreDetails(
   return { ok: true, message: "Store details saved." };
 }
 
+/** A logo uploaded for a save that never happened (the admin left after an error). */
+export async function discardLogo(url: string): Promise<void> {
+  await requireAdmin();
+  await settingsService.discardUnusedLogo(String(url));
+}
+
 /**
  * Changes the signed-in admin's password. That signs out every other session, so this
  * browser gets a new session cookie for the new password.

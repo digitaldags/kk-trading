@@ -1,6 +1,6 @@
 import { execFileSync } from "node:child_process";
 import { expect, test, type Page } from "@playwright/test";
-import { publish } from "./helpers";
+import { codeFor, publish } from "./helpers";
 
 // Draft and publish (ticket 15) against the Neon dev branch: admin edits stay off the
 // store until Publish, and Discard puts the draft back. Uses its own "E2E publish …"
@@ -45,6 +45,7 @@ async function addProduct(page: Page, name: string) {
   await page.getByRole("link", { name: "Add product" }).click();
   const dialog = page.getByRole("dialog", { name: "Add product" });
   await dialog.getByLabel("Product name").fill(name);
+  await dialog.getByLabel("Product code").fill(codeFor(name));
   await dialog.getByLabel("Price").fill("500");
   await dialog.getByRole("button", { name: "Add product" }).click();
   await expect(snackbar(page, `Added ${name}.`)).toBeVisible();

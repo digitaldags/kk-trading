@@ -41,6 +41,9 @@ export type NewProduct = Pick<
   | "slug"
   | "categoryId"
   | "name"
+  | "code"
+  | "uom"
+  | "specs"
   | "priceCentavos"
   | "stockStatus"
   | "keySpec"
@@ -59,10 +62,14 @@ export interface ProductRepo {
   listWithCategory(filter?: ProductFilter): Promise<ProductWithCategory[]>;
   findById(id: string): Promise<Product | null>;
   findBySlug(slug: string): Promise<ProductWithCategory | null>;
+  /** Case-insensitive. Pass a filled-in code: many products can have an empty one. */
+  findByCode(code: string): Promise<Product | null>;
   slugsStartingWith(prefix: string): Promise<string[]>;
   /** -1 when there are no products. */
   maxSortOrder(): Promise<number>;
+  /** Throws `ProductCodeTakenError` when the unique code index refuses it. */
   insert(values: NewProduct): Promise<Product>;
+  /** Throws `ProductCodeTakenError` when the unique code index refuses it. */
   update(id: string, patch: ProductPatch): Promise<Product | null>;
   /** Returns the deleted product, or null if it didn't exist. */
   delete(id: string): Promise<Product | null>;
@@ -101,6 +108,8 @@ export interface SettingsRepo {
   get(): Promise<StoreSettings | null>;
   /** Writes the single settings row, creating it if needed. */
   update(values: SettingsValues): Promise<StoreSettings>;
+  /** Whether the store shows this logo, in the draft or in the published store. */
+  isLogoInUse(url: string): Promise<boolean>;
 }
 
 export interface AdminUserRepo {

@@ -13,6 +13,7 @@ import type {
   StoreSettings,
 } from "@/lib/domain/types";
 import type { StockStatus } from "@/lib/domain/stock";
+import type { Uom } from "@/lib/domain/uom";
 import type { PublishRepo, PublishedStore } from "./types";
 
 // Rows as `to_jsonb(row)` stores them in the snapshot (lib/db/publish.ts).
@@ -32,6 +33,9 @@ type ProductRow = {
   slug: string;
   category_id: string;
   name: string;
+  code: string;
+  uom: Uom;
+  specs: string;
   price_centavos: number;
   stock_status: StockStatus;
   key_spec: string;
@@ -46,9 +50,13 @@ type ProductRow = {
 
 type SettingsRow = {
   name: string;
+  slogan: string;
+  logo_url: string | null;
+  logo_pathname: string | null;
   headline: string;
   tagline: string;
   phone: string;
+  phone2: string;
   email: string;
   address: string;
   updated_at: string;
@@ -89,6 +97,9 @@ export function fromSnapshot(
           slug: p.slug,
           categoryId: p.category_id,
           name: p.name,
+          code: p.code,
+          uom: p.uom,
+          specs: p.specs,
           priceCentavos: p.price_centavos,
           stockStatus: p.stock_status,
           keySpec: p.key_spec,
@@ -128,9 +139,13 @@ export function fromSnapshot(
   const s = data.settings;
   const settings: StoreSettings | null = s && {
     name: s.name,
+    slogan: s.slogan,
+    logoUrl: s.logo_url,
+    logoPathname: s.logo_pathname,
     headline: s.headline,
     tagline: s.tagline,
     phone: s.phone,
+    phone2: s.phone2,
     email: s.email,
     address: s.address,
     updatedAt: new Date(s.updated_at),

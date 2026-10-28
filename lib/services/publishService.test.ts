@@ -21,6 +21,7 @@ beforeEach(async () => {
   publish = createPublishService({
     publish: store.publishRepo,
     products: store.productRepo,
+    settings: store.settingsRepo,
     imageStore: store.imageStore,
   });
   products = createProductService({
@@ -33,6 +34,8 @@ beforeEach(async () => {
 
 const input = (name: string, extra: Record<string, unknown> = {}) => ({
   name,
+  code: name.toUpperCase(),
+  uom: "pcs" as const,
   categoryId: office.id,
   price: "100",
   stockStatus: "in_stock" as const,
@@ -96,6 +99,74 @@ describe("photos while there's a draft", () => {
   });
 });
 
+describe("the store logo while there's a draft", () => {
+  const logo = (name: string) =>
+    `https://store.public.blob.vercel-storage.com/branding/${name}.png`;
+  const SETTINGS = {
+    name: "KK Trading",
+    slogan: "",
+    headline: "Equipment",
+    tagline: "",
+    phone: "",
+    phone2: "",
+    email: "hello@example.com",
+    address: "",
+  };
+  const setLogo = (name: string | null) =>
+    store.settingsRepo.update({
+      ...SETTINGS,
+      logoUrl: name && logo(name),
+      logoPathname: name && `branding/${name}.png`,
+    });
+
+  it("deletes the previously published logo after a publish, once nothing uses it", async () => {
+    await setLogo("old");
+    await publish.publish();
+    await setLogo("new");
+    await publish.publish();
+    expect(store.imageStore.deleted).toEqual([logo("old")]);
+  });
+
+  it("keeps the published logo when the draft still uses it", async () => {
+    await setLogo("same");
+    await publish.publish();
+    await publish.publish();
+    expect(store.imageStore.deleted).toEqual([]);
+  });
+
+  it("deletes a logo only the discarded draft had", async () => {
+    await setLogo("live");
+    await publish.publish();
+    await setLogo("draft");
+    expect(await publish.discard()).toBe(true);
+    expect((await store.settingsRepo.get())?.logoUrl).toBe(logo("live"));
+    expect(store.imageStore.deleted).toEqual([logo("draft")]);
+  });
+
+  it("logs a logo it couldn't delete", async () => {
+    const logError = vi.fn();
+    const failing = createPublishService({
+      publish: store.publishRepo,
+      products: store.productRepo,
+      settings: store.settingsRepo,
+      imageStore: {
+        delete: async () => {
+          throw new Error("Blob is down");
+        },
+      },
+      logError,
+    });
+    await setLogo("old");
+    await failing.publish();
+    await setLogo(null);
+    await failing.publish();
+    expect(logError).toHaveBeenCalledWith(
+      `Couldn't delete store logo ${logo("old")}`,
+      expect.any(Error),
+    );
+  });
+});
+
 describe("publishService.discard", () => {
   it("puts the draft back to what was published, and deletes photos added since", async () => {
     const created = await products.create(
@@ -140,6 +211,7 @@ describe("publishService.discard", () => {
     const failing = createPublishService({
       publish: store.publishRepo,
       products: store.productRepo,
+      settings: store.settingsRepo,
       imageStore: {
         delete: async () => {
           throw new Error("Blob is down");

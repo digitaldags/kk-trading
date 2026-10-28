@@ -14,6 +14,11 @@ import {
   uuid,
 } from "drizzle-orm/pg-core";
 import { STOCK_STATUSES } from "@/lib/domain/stock";
+import { UOMS } from "@/lib/domain/uom";
+
+/** `col in ('a', 'b')` for a check constraint built from a domain list. */
+const oneOf = (values: readonly string[]) =>
+  sql.raw(values.map((v) => `'${v}'`).join(", "));
 
 const createdAt = () =>
   timestamp("created_at", { withTimezone: true }).notNull().defaultNow();
@@ -48,6 +53,12 @@ export const products = pgTable(
       .notNull()
       .references(() => categories.id, { onDelete: "restrict" }),
     name: text("name").notNull(),
+    // Printed on quotations and delivery receipts (ticket 17). Optional: empty when
+    // there's none.
+    code: text("code").notNull().default(""),
+    uom: text("uom", { enum: UOMS }).notNull().default("pcs"),
+    // One spec per line.
+    specs: text("specs").notNull().default(""),
     priceCentavos: integer("price_centavos").notNull(),
     stockStatus: text("stock_status", { enum: STOCK_STATUSES }).notNull(),
     keySpec: text("key_spec").notNull().default(""),
@@ -63,11 +74,16 @@ export const products = pgTable(
   (t) => [
     index("products_category_id_idx").on(t.categoryId),
     index("products_sort_order_idx").on(t.sortOrder),
+    // Unique ignoring case, among products that have a code.
+    uniqueIndex("products_code_lower_idx")
+      .on(sql`lower(${t.code})`)
+      .where(sql`${t.code} <> ''`),
     check("products_price_centavos_check", sql`${t.priceCentavos} >= 0`),
     check(
       "products_stock_status_check",
-      sql`${t.stockStatus} in (${sql.raw(STOCK_STATUSES.map((s) => `'${s}'`).join(", "))})`,
+      sql`${t.stockStatus} in (${oneOf(STOCK_STATUSES)})`,
     ),
+    check("products_uom_check", sql`${t.uom} in (${oneOf(UOMS)})`),
   ],
 );
 
@@ -77,9 +93,15 @@ export const storeSettings = pgTable(
   {
     id: smallint("id").primaryKey(),
     name: text("name").notNull(),
+    // The letterhead of quotations and delivery receipts (ticket 17).
+    slogan: text("slogan").notNull().default(""),
+    // Vercel Blob URL and pathname, under branding/.
+    logoUrl: text("logo_url"),
+    logoPathname: text("logo_pathname"),
     headline: text("headline").notNull(),
     tagline: text("tagline").notNull(),
     phone: text("phone").notNull(),
+    phone2: text("phone2").notNull().default(""),
     email: text("email").notNull(),
     address: text("address").notNull(),
     updatedAt: updatedAt(),

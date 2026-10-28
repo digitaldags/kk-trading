@@ -55,6 +55,7 @@ export type StoreDetailsField = keyof StoreSettingsInput;
 export type SaveStoreDetailsAction = (
   input: StoreSettingsInput,
 ) => Promise<SaveResult<StoreDetailsField>>;
+export type DiscardLogoAction = (url: string) => Promise<void>;
 
 export type PasswordField = keyof PasswordChangeInput;
 export type ChangePasswordAction = (

@@ -149,6 +149,7 @@ describe("database rules", () => {
       slug: "x",
       categoryId: gym!.id,
       name: "X",
+      code: "X",
       stockStatus: "in_stock" as const,
     };
     expect(
@@ -165,6 +166,73 @@ describe("database rules", () => {
         }),
       ),
     ).toBe("23514");
+    expect(
+      await pgErrorCode(
+        db.insert(products).values({
+          ...product,
+          priceCentavos: 100,
+          uom: "box" as "pcs",
+        }),
+      ),
+    ).toBe("23514");
+  });
+
+  it("treats product codes as unique regardless of case", async () => {
+    const [gym] = await db
+      .select()
+      .from(categories)
+      .where(eq(categories.slug, "gym"));
+    expect(
+      await pgErrorCode(
+        db.insert(products).values({
+          slug: "barbell-copy",
+          categoryId: gym!.id,
+          name: "Barbell copy",
+          code: "kk-bar-01",
+          priceCentavos: 100,
+          stockStatus: "in_stock",
+        }),
+      ),
+    ).toBe("23505");
+  });
+
+  it("defaults a product's code and specs to empty and its unit to pcs", async () => {
+    const [gym] = await db
+      .select()
+      .from(categories)
+      .where(eq(categories.slug, "gym"));
+    const [row] = await db
+      .insert(products)
+      .values({
+        slug: "plain",
+        categoryId: gym!.id,
+        name: "Plain",
+        priceCentavos: 100,
+        stockStatus: "in_stock",
+      })
+      .returning();
+    expect(row).toMatchObject({ code: "", uom: "pcs", specs: "" });
+  });
+
+  it("lets any number of products have no code", async () => {
+    const [gym] = await db
+      .select()
+      .from(categories)
+      .where(eq(categories.slug, "gym"));
+    const rows = await db
+      .insert(products)
+      .values(
+        ["a", "b"].map((slug) => ({
+          slug,
+          categoryId: gym!.id,
+          name: slug,
+          code: "",
+          priceCentavos: 100,
+          stockStatus: "in_stock" as const,
+        })),
+      )
+      .returning();
+    expect(rows).toHaveLength(2);
   });
 
   it("allows only one settings row", async () => {

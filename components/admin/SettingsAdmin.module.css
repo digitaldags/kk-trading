@@ -24,6 +24,14 @@
   gap: 12px;
 }
 
+/* Phone, Second phone and Email (Figma 12:1149). */
+.three {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  align-items: start;
+  gap: 12px;
+}
+
 .actions {
   display: flex;
   flex-wrap: wrap;
@@ -31,9 +39,67 @@
   gap: 8px;
 }
 
+.label,
+.hint {
+  margin: 0;
+  color: var(--on-surface-var);
+}
+
 .error {
   margin: 0;
   color: var(--err);
+}
+
+.logoField {
+  display: grid;
+  gap: 6px;
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
+.logoField > .label {
+  padding: 0;
+}
+
+.logo {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px;
+}
+
+.logoPreview {
+  position: relative;
+  display: grid;
+  place-items: center;
+  flex: none;
+  width: 84px;
+  height: 64px;
+  overflow: hidden;
+  border: 1px solid var(--outline-var);
+  border-radius: var(--r-md);
+  background: var(--surface-card);
+  color: var(--on-surface);
+}
+
+/* A logo is shown whole, never cropped. */
+.logoImage {
+  object-fit: contain;
+  padding: 6px;
+}
+
+.logoActions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+@media (max-width: 640px) {
+  .three {
+    grid-template-columns: minmax(0, 1fr);
+  }
 }
 
 @media (max-width: 520px) {

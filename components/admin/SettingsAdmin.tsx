@@ -1,28 +1,58 @@
 "use client";
 
-import { useId, useState, useTransition, type FormEvent } from "react";
+import { upload } from "@vercel/blob/client";
+import Image from "next/image";
+import {
+  useEffect,
+  useId,
+  useRef,
+  useState,
+  useTransition,
+  type ChangeEvent,
+  type FormEvent,
+} from "react";
 import { Button } from "@/components/ui/Button";
+import { Icon } from "@/components/ui/Icon";
 import { useSnackbar } from "@/components/ui/Snackbar";
 import { TextField } from "@/components/ui/TextField";
 import { cx } from "@/components/ui/shared/cx";
+import {
+  BRANDING_IMAGE_PREFIX,
+  BRANDING_IMAGE_TYPES,
+  MAX_PRODUCT_IMAGE_BYTES,
+} from "@/lib/domain/productImages";
 import { fromZodError, type FieldErrors } from "@/lib/domain/result";
 import {
   MIN_ADMIN_PASSWORD_LENGTH,
   passwordChangeSchema,
   storeSettingsInputSchema,
 } from "@/lib/domain/schemas";
+import { slugify } from "@/lib/domain/slug";
 import type { StoreSettings } from "@/lib/domain/types";
 import type {
   ChangePasswordAction,
+  DiscardLogoAction,
   PasswordField,
   SaveStoreDetailsAction,
   StoreDetailsField,
 } from "./actionTypes";
+import { UPLOAD_URL } from "./ProductEditor";
 import styles from "./SettingsAdmin.module.css";
+
+export const LOGO_TYPE_ERROR = "Choose a PNG, JPEG or WebP image.";
+export const LOGO_SIZE_ERROR = "Choose an image of 5 MB or less.";
+export const LOGO_UPLOAD_FAILED = "The logo couldn't be uploaded. Try again.";
+
+const LOGO_EXTENSIONS: Record<(typeof BRANDING_IMAGE_TYPES)[number], string> = {
+  "image/png": "png",
+  "image/jpeg": "jpg",
+  "image/webp": "webp",
+};
 
 type SettingsAdminProps = {
   settings: StoreSettings;
   saveDetailsAction: SaveStoreDetailsAction;
+  discardLogoAction: DiscardLogoAction;
   changePasswordAction: ChangePasswordAction;
 };
 
@@ -30,12 +60,17 @@ type SettingsAdminProps = {
 export function SettingsAdmin({
   settings,
   saveDetailsAction,
+  discardLogoAction,
   changePasswordAction,
 }: SettingsAdminProps) {
   return (
     <>
       <h1 className="visually-hidden">Store details</h1>
-      <StoreDetailsForm settings={settings} saveAction={saveDetailsAction} />
+      <StoreDetailsForm
+        settings={settings}
+        saveAction={saveDetailsAction}
+        discardLogoAction={discardLogoAction}
+      />
       <PasswordForm changeAction={changePasswordAction} />
     </>
   );
@@ -51,40 +86,113 @@ function focusFirstError<F extends string>(
   if (first) document.getElementById(idFor(first))?.focus();
 }
 
+/** Fields in the order they're shown, so the first error gets focus. */
 const DETAIL_FIELDS = [
   "name",
+  "slogan",
+  "logo",
   "headline",
   "tagline",
   "phone",
+  "phone2",
   "email",
   "address",
 ] as const satisfies readonly StoreDetailsField[];
 
-type Details = Record<StoreDetailsField, string>;
+type TextDetail = Exclude<StoreDetailsField, "logo">;
+type Details = Record<TextDetail, string>;
+
+/** The logo as the form shows it. `uploaded` is set once a new file is in Blob. */
+type Logo =
+  | { kind: "current"; url: string }
+  | { kind: "none" }
+  | {
+      kind: "new";
+      file: File;
+      previewUrl: string;
+      uploaded?: { url: string; pathname: string };
+    };
+
+/** Copy for a file the logo field can't take, or null when it's fine. */
+function logoFileError(file: File): string | null {
+  if (!(BRANDING_IMAGE_TYPES as readonly string[]).includes(file.type)) {
+    return LOGO_TYPE_ERROR;
+  }
+  if (file.size > MAX_PRODUCT_IMAGE_BYTES) return LOGO_SIZE_ERROR;
+  return null;
+}
 
 function StoreDetailsForm({
   settings,
   saveAction,
+  discardLogoAction,
 }: {
   settings: StoreSettings;
   saveAction: SaveStoreDetailsAction;
+  discardLogoAction: DiscardLogoAction;
 }) {
   const id = useId();
   const fieldId = (field: StoreDetailsField) => `${id}-${field}`;
   const snackbar = useSnackbar();
   const [fields, setFields] = useState<Details>(() => ({
     name: settings.name,
+    slogan: settings.slogan,
     headline: settings.headline,
     tagline: settings.tagline,
     phone: settings.phone,
+    phone2: settings.phone2,
     email: settings.email,
     address: settings.address,
   }));
+  const [logo, setLogo] = useState<Logo>(() =>
+    settings.logoUrl
+      ? { kind: "current", url: settings.logoUrl }
+      : { kind: "none" },
+  );
+  // Whether the saved row has a logo, so removing one sends `null`.
+  const [hasSavedLogo, setHasSavedLogo] = useState(settings.logoUrl !== null);
   const [errors, setErrors] = useState<FieldErrors<StoreDetailsField>>({});
   const [formError, setFormError] = useState<string>();
   const [saving, startSaving] = useTransition();
+  // A logo in Blob that the settings row doesn't use yet. Deleted if the page closes first.
+  const unsavedUploadRef = useRef<string | null>(null);
+  const fileRef = useRef<HTMLInputElement>(null);
 
-  const field = (name: StoreDetailsField) => ({
+  const previewUrl = logo.kind === "new" ? logo.previewUrl : null;
+  useEffect(() => {
+    if (!previewUrl) return;
+    return () => URL.revokeObjectURL(previewUrl);
+  }, [previewUrl]);
+
+  useEffect(() => {
+    // Reset on mount: Next can show this same instance again (see CLAUDE.md, route dialogs).
+    unsavedUploadRef.current = null;
+    return () => {
+      const unsaved = unsavedUploadRef.current;
+      if (unsaved) {
+        unsavedUploadRef.current = null;
+        void discardLogoAction(unsaved);
+      }
+    };
+  }, [discardLogoAction]);
+
+  const clearLogoError = () => setErrors(({ logo: _, ...rest }) => rest);
+
+  function handleLogoFile(event: ChangeEvent<HTMLInputElement>) {
+    const file = event.target.files?.[0];
+    // Let the same file be picked again after Remove.
+    event.target.value = "";
+    if (!file) return;
+    const problem = logoFileError(file);
+    if (problem) {
+      setErrors((e) => ({ ...e, logo: problem }));
+      return;
+    }
+    setLogo({ kind: "new", file, previewUrl: URL.createObjectURL(file) });
+    clearLogoError();
+  }
+
+  const field = (name: TextDetail) => ({
     id: fieldId(name),
     value: fields[name],
     error: errors[name],
@@ -106,8 +214,47 @@ function StoreDetailsForm({
     setErrors({});
     setFormError(undefined);
     startSaving(async () => {
-      const result = await saveAction(fields);
+      let logoInput: { url: string; pathname: string } | null | undefined;
+      if (logo.kind === "new") {
+        logoInput = logo.uploaded;
+        if (!logoInput) {
+          try {
+            const extension =
+              LOGO_EXTENSIONS[
+                logo.file.type as (typeof BRANDING_IMAGE_TYPES)[number]
+              ];
+            const blob = await upload(
+              `${BRANDING_IMAGE_PREFIX}${slugify(fields.name, "store")}-logo.${extension}`,
+              logo.file,
+              {
+                access: "public",
+                handleUploadUrl: UPLOAD_URL,
+                contentType: logo.file.type,
+              },
+            );
+            logoInput = { url: blob.url, pathname: blob.pathname };
+            unsavedUploadRef.current = blob.url;
+            // Kept, so trying again after a failed save doesn't upload a second copy.
+            setLogo({ ...logo, uploaded: logoInput });
+          } catch {
+            setErrors({ logo: LOGO_UPLOAD_FAILED });
+            document.getElementById(fieldId("logo"))?.focus();
+            return;
+          }
+        }
+      } else if (logo.kind === "none" && hasSavedLogo) {
+        logoInput = null;
+      }
+
+      const result = await saveAction({ ...fields, logo: logoInput });
       if (result.ok) {
+        unsavedUploadRef.current = null;
+        if (logoInput) {
+          setLogo({ kind: "current", url: logoInput.url });
+          setHasSavedLogo(true);
+        } else if (logoInput === null) {
+          setHasSavedLogo(false);
+        }
         snackbar.show(result.message);
         return;
       }
@@ -129,7 +276,9 @@ function StoreDetailsForm({
         Store details
       </h2>
       <p className={cx(styles.description, "t-body-medium")}>
-        Shown in the header, hero and contact section of the store.
+        Shown in the header, hero and contact section of the store. The store
+        name, slogan, logo and phone numbers also print on quotations and
+        delivery receipts.
       </p>
       <TextField
         label="Store name"
@@ -137,6 +286,73 @@ function StoreDetailsForm({
         required
         {...field("name")}
       />
+      <TextField label="Slogan" maxLength={60} {...field("slogan")} />
+
+      <fieldset className={styles.logoField}>
+        <legend className={cx(styles.label, "t-label-small")}>Logo</legend>
+        <div className={styles.logo}>
+          <div className={styles.logoPreview}>
+            {logo.kind === "none" ? (
+              <Icon name="storefront" size={36} />
+            ) : (
+              <Image
+                src={logo.kind === "new" ? logo.previewUrl : logo.url}
+                alt="Store logo"
+                fill
+                sizes="84px"
+                unoptimized={logo.kind === "new"}
+                className={styles.logoImage}
+              />
+            )}
+          </div>
+          <div className={styles.logoActions}>
+            <Button
+              id={fieldId("logo")}
+              variant="outlined"
+              icon="add_photo_alternate"
+              aria-describedby={cx(
+                `${id}-logo-hint`,
+                errors.logo && `${id}-logo-error`,
+              )}
+              onClick={() => fileRef.current?.click()}
+            >
+              {logo.kind === "none" ? "Upload logo" : "Replace logo"}
+            </Button>
+            <input
+              ref={fileRef}
+              type="file"
+              accept={BRANDING_IMAGE_TYPES.join(",")}
+              hidden
+              data-testid="logo-file"
+              onChange={handleLogoFile}
+            />
+            {logo.kind !== "none" && (
+              <Button
+                variant="text"
+                onClick={() => {
+                  setLogo({ kind: "none" });
+                  clearLogoError();
+                }}
+              >
+                Remove logo
+              </Button>
+            )}
+          </div>
+        </div>
+        <p id={`${id}-logo-hint`} className={cx(styles.hint, "t-label-small")}>
+          PNG with a transparent background works best. Printed at the top left
+          of quotations and delivery receipts.
+        </p>
+        {errors.logo && (
+          <p
+            id={`${id}-logo-error`}
+            className={cx(styles.error, "t-label-small")}
+          >
+            {errors.logo}
+          </p>
+        )}
+      </fieldset>
+
       <TextField
         label="Headline"
         maxLength={120}
@@ -150,13 +366,20 @@ function StoreDetailsForm({
         rows={3}
         {...field("tagline")}
       />
-      <div className={styles.two}>
+      <div className={styles.three}>
         <TextField
           label="Phone"
           type="tel"
           maxLength={40}
           autoComplete="off"
           {...field("phone")}
+        />
+        <TextField
+          label="Second phone"
+          type="tel"
+          maxLength={40}
+          autoComplete="off"
+          {...field("phone2")}
         />
         <TextField
           label="Email"
