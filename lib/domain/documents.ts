@@ -114,6 +114,21 @@ export function receiptItemsSummary(
     .join(", ");
 }
 
+/**
+ * Printed on every delivery receipt. BIR RR 7-2024 requires it on supplementary
+ * documents; kept in one place in case the owner's accountant asks for other wording.
+ */
+export const INPUT_TAX_NOTICE =
+  "THIS DOCUMENT IS NOT VALID FOR CLAIM OF INPUT TAX";
+
+/** The letterhead's phones: "{phone} / {phone2}", without the slash when one is empty. */
+export function phoneLine(phone: string, phone2: string): string {
+  return [phone, phone2]
+    .map((p) => p.trim())
+    .filter(Boolean)
+    .join(" / ");
+}
+
 // en-CA formats as YYYY-MM-DD.
 const manilaDate = new Intl.DateTimeFormat("en-CA", {
   timeZone: "Asia/Manila",

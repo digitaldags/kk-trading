@@ -7,6 +7,7 @@ import {
   documentToday,
   grandTotal,
   lineTotal,
+  phoneLine,
   QUOTATION_STATUS_LABELS,
   receiptItemsSummary,
   remainingByUom,
@@ -118,5 +119,16 @@ describe("receiptItemsSummary", () => {
         { quantity: 12, line: { code: "", name: "Adjustable bench" } },
       ]),
     ).toBe("2 × KK-DG-D4, 12 × Adjustable bench");
+  });
+});
+
+describe("phoneLine", () => {
+  it("joins both phones with a slash, or shows the one that is set", () => {
+    expect(phoneLine("+639 39 219 1060", "+639 77 698 2416")).toBe(
+      "+639 39 219 1060 / +639 77 698 2416",
+    );
+    expect(phoneLine("+639 39 219 1060", "")).toBe("+639 39 219 1060");
+    expect(phoneLine("", " +639 77 698 2416 ")).toBe("+639 77 698 2416");
+    expect(phoneLine("", "")).toBe("");
   });
 });

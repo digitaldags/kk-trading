@@ -74,6 +74,16 @@ const TEXT_STYLES: { figma: string; className: string }[] = [
   { figma: "Label/Small", className: "t-label-small" },
   { figma: "Label/Overline", className: "t-label-overline" },
   { figma: "Label/Tag", className: "t-label-tag" },
+  // Print documents (ticket 23), sized from the owner's samples.
+  { figma: "Print/Body (not a Figma style yet)", className: "t-print-body" },
+  {
+    figma: "Print/Strong (not a Figma style yet)",
+    className: "t-print-strong",
+  },
+  {
+    figma: "Print/Heading (not a Figma style yet)",
+    className: "t-print-heading",
+  },
 ];
 
 const RADII = [

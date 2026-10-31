@@ -1,0 +1,13 @@
+/* Printing the quotation and delivery receipt (ticket 23): A4, with the margins the
+   sheet loses in print. Only applies when printing, so it's harmless once loaded. */
+@page {
+  size: A4;
+  margin: 12mm;
+}
+
+@media print {
+  html,
+  body {
+    background: none;
+  }
+}

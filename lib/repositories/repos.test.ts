@@ -1,6 +1,6 @@
 import type { PGlite } from "@electric-sql/pglite";
 import { sql } from "drizzle-orm";
-import { afterAll, beforeAll, describe, expect, it } from "vitest";
+import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
 import type { Db } from "@/lib/db/client";
 import { queryRows } from "@/lib/db/publish";
 import {
@@ -20,6 +20,10 @@ import { createSettingsRepo } from "./settingsRepo";
 
 // The repositories' SQL against real Postgres (PGlite), with the seed loaded.
 // Read-only tests share one database; tests that write make their own.
+
+// Those tests seed a PGlite database inside the test, which took over 5s under
+// `pnpm test:coverage` once the suite grew (2026-10-31).
+vi.setConfig({ testTimeout: 20_000 });
 
 let db: Db;
 let client: PGlite;
