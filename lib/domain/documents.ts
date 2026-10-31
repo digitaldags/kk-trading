@@ -2,6 +2,8 @@
 // draft and publish. The database check constraint `quotations_status_check` is built
 // from QUOTATION_STATUSES.
 
+import type { Uom } from "./uom";
+
 export const QUOTATION_STATUSES = ["draft", "completed", "declined"] as const;
 
 export type QuotationStatus = (typeof QUOTATION_STATUSES)[number];
@@ -76,6 +78,41 @@ export const QUOTATION_DEFAULTS = {
   acknowledgement:
     "THIS QUOTATION IS BASED ON THE DETAILS AND LAYOUT VERIFIED BY THE CLIENT. ANY REVISION ON THE APPROVED DETAILS AND UNREASONABLE CHANGE ON MIND WILL BE CHARGED ACCORDINGLY.\nI HEREBY AGREE TO ALL ABOVE TERMS AND CONDITIONS.",
 } as const;
+
+/** "8 pcs", "1 set", "2 sets". "pcs" is already plural; the other units take an "s". */
+export function countWithUom(count: number, uom: Uom): string {
+  return uom === "pcs" || count === 1 ? `${count} ${uom}` : `${count} ${uom}s`;
+}
+
+/** "8 pcs", "8 pcs and 2 sets", "8 pcs, 2 sets and 1 pair". */
+function joinAnd(parts: string[]): string {
+  return parts.length <= 1
+    ? (parts[0] ?? "")
+    : `${parts.slice(0, -1).join(", ")} and ${parts.at(-1)}`;
+}
+
+/**
+ * What is left to deliver, summed per unit in line order: "8 pcs and 2 sets". Empty
+ * when everything has been delivered.
+ */
+export function remainingByUom(
+  lines: { uom: Uom; remaining: number }[],
+): string {
+  const totals = new Map<Uom, number>();
+  for (const { uom, remaining } of lines) {
+    if (remaining > 0) totals.set(uom, (totals.get(uom) ?? 0) + remaining);
+  }
+  return joinAnd([...totals].map(([uom, count]) => countWithUom(count, uom)));
+}
+
+/** A receipt's lines in short: "2 × KK-DG-D4, 5 × KK-GF-Z014". The name stands in for a missing code. */
+export function receiptItemsSummary(
+  items: { quantity: number; line: { code: string; name: string } }[],
+): string {
+  return items
+    .map(({ quantity, line }) => `${quantity} × ${line.code || line.name}`)
+    .join(", ");
+}
 
 // en-CA formats as YYYY-MM-DD.
 const manilaDate = new Intl.DateTimeFormat("en-CA", {

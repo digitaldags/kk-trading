@@ -26,3 +26,27 @@
     transform: scale(0.96);
   }
 }
+
+/* A message with a link: the text, then the link on the right. Clickable, unlike the region. */
+.withAction {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding-right: 8px;
+  pointer-events: auto;
+}
+
+.action {
+  composes: stateLayer from "../shared/stateLayer.module.css";
+  flex: none;
+  margin-left: auto;
+  padding: 8px 12px;
+  border-radius: var(--r-full);
+  color: var(--inverse-primary);
+  text-decoration: none;
+}
+
+.action:focus-visible {
+  outline: 2px solid var(--inverse-primary);
+  outline-offset: 2px;
+}

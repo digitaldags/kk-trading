@@ -1,0 +1,139 @@
+/* Create delivery receipt (Figma 77:1364). */
+
+.form {
+  display: grid;
+  gap: 16px;
+}
+
+.two {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  align-items: start;
+  gap: 12px;
+}
+
+.table {
+  width: 100%;
+  border-collapse: collapse;
+  font-variant-numeric: tabular-nums;
+}
+
+.table th {
+  padding: 0 12px 8px 0;
+  border-bottom: 1px solid var(--outline-var);
+  color: var(--on-surface-var);
+  font-weight: inherit;
+  text-align: left;
+}
+
+.table td {
+  padding: 8px 12px 8px 0;
+  border-bottom: 1px solid var(--outline-var);
+  color: var(--on-surface-var);
+  vertical-align: middle;
+}
+
+.table th:last-child,
+.table td:last-child {
+  padding-right: 0;
+}
+
+.table .end {
+  text-align: right;
+}
+
+.table th:nth-child(2) {
+  width: 112px;
+}
+
+.table th:nth-child(3) {
+  width: 120px;
+}
+
+.table .item {
+  color: var(--on-surface);
+  overflow-wrap: anywhere;
+}
+
+.done .item,
+.done td {
+  color: var(--on-surface-var);
+}
+
+.deliver {
+  min-width: 0;
+}
+
+.input {
+  composes: input from "./QuotationItemRow.module.css";
+}
+
+.input:disabled {
+  border-color: var(--outline-var);
+  color: var(--on-surface-var);
+  cursor: not-allowed;
+}
+
+.cellLabel {
+  display: none;
+}
+
+.error {
+  margin: 4px 0 0;
+  color: var(--err);
+}
+
+.hint {
+  margin: 0;
+  color: var(--on-surface-var);
+}
+
+/* Stacked: the item on top, then what remains and the input side by side. */
+@media (max-width: 760px) {
+  .table,
+  .table tbody {
+    display: block;
+  }
+
+  .table thead {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+  }
+
+  .table tr {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 120px;
+    align-items: center;
+    gap: 8px 12px;
+    padding: 12px 0;
+    border-bottom: 1px solid var(--outline-var);
+  }
+
+  .table td {
+    display: block;
+    padding: 0;
+    border: 0;
+  }
+
+  .table .item {
+    grid-column: 1 / -1;
+  }
+
+  .table .end {
+    text-align: left;
+  }
+
+  .cellLabel {
+    display: inline;
+  }
+}
+
+@media (max-width: 640px) {
+  .two {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}

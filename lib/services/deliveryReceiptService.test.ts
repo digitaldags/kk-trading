@@ -354,3 +354,26 @@ describe("deliveryReceiptService.delete and get", () => {
     expect(await service.get(created.ok ? created.data.id : "")).toBeNull();
   });
 });
+
+describe("deliveryReceiptService.listForQuotation", () => {
+  it("lists a quotation's receipts oldest first, with their items", async () => {
+    await service.create(
+      quotation.id,
+      receipt([{ quotationItemId: chairLine, quantity: 3 }]),
+    );
+    await service.create(
+      quotation.id,
+      receipt([{ quotationItemId: deskLine, quantity: 1 }], { number: "DR-2" }),
+    );
+    const list = await service.listForQuotation(quotation.id);
+    expect(list.map((r) => r.number)).toEqual(["DR-1", "DR-2"]);
+    expect(list[0]?.items).toEqual([
+      expect.objectContaining({ quantity: 3, quotationItemId: chairLine }),
+    ]);
+  });
+
+  it("is empty for an unknown or malformed id", async () => {
+    expect(await service.listForQuotation(UNKNOWN_ID)).toEqual([]);
+    expect(await service.listForQuotation("x")).toEqual([]);
+  });
+});

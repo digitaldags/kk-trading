@@ -17,7 +17,7 @@ import {
 function Trigger({ messages }: { messages: string[] }) {
   const { show } = useSnackbar();
   return (
-    <button type="button" onClick={() => messages.forEach(show)}>
+    <button type="button" onClick={() => messages.forEach((m) => show(m))}>
       Show
     </button>
   );
@@ -92,6 +92,44 @@ describe("Snackbar", () => {
     expect(screen.getByRole("status")).toHaveTextContent(
       "Copied 0917 000 0000",
     );
+  });
+
+  it("shows an action as a link to a new tab, and holds it while hovered or focused", () => {
+    function WithAction() {
+      const { show } = useSnackbar();
+      return (
+        <button
+          type="button"
+          onClick={() =>
+            show("Receipt DR-1 created.", {
+              label: "Print",
+              href: "/admin/print/receipts/r1",
+            })
+          }
+        >
+          Show
+        </button>
+      );
+    }
+    render(
+      <SnackbarProvider>
+        <WithAction />
+      </SnackbarProvider>,
+    );
+    fireEvent.click(screen.getByRole("button", { name: "Show" }));
+    const link = screen.getByRole("link", { name: "Print" });
+    expect(link).toHaveAttribute("href", "/admin/print/receipts/r1");
+    expect(link).toHaveAttribute("target", "_blank");
+
+    fireEvent.focus(link);
+    act(() => vi.advanceTimersByTime(SNACKBAR_DURATION_MS * 3));
+    expect(screen.getByRole("status")).toHaveTextContent(
+      "Receipt DR-1 created.",
+    );
+
+    fireEvent.blur(link);
+    act(() => vi.advanceTimersByTime(SNACKBAR_DURATION_MS));
+    expect(screen.getByRole("status")).toBeEmptyDOMElement();
   });
 
   it("renders no region outside a provider", () => {

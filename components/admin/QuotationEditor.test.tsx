@@ -451,32 +451,3 @@ describe("QuotationEditor: a saved draft", () => {
     expect(leave()).toBe(true);
   });
 });
-
-describe("QuotationEditor: completed and declined", () => {
-  it.each(["completed", "declined"] as const)(
-    "opens a %s quotation read-only",
-    (status) => {
-      renderEditor({ quotation: savedQuotation({ status }) });
-      expect(
-        screen.getByText(`This quotation is ${status}. It can't be edited.`),
-      ).toBeVisible();
-      for (const name of [
-        "Save",
-        "Mark as completed",
-        "Mark as declined",
-        "Delete draft",
-        "Add product",
-        "Remove KK-DG-D4",
-      ]) {
-        expect(screen.queryByRole("button", { name })).toBeNull();
-      }
-      expect(screen.getByLabelText("Customer name")).toHaveAttribute(
-        "readonly",
-      );
-      expect(
-        screen.getByLabelText(`Quantity for ${CABINET.name}`),
-      ).toHaveAttribute("readonly");
-      expect(screen.getByRole("link", { name: "Print preview" })).toBeVisible();
-    },
-  );
-});

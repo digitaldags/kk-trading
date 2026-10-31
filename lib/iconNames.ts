@@ -29,6 +29,7 @@ const UI_ICONS = [
   "expand_more",
   "grid_view",
   "info",
+  "local_shipping",
   "location_on",
   "lock",
   "logout",

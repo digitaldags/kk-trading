@@ -2,12 +2,17 @@
 
 import type {
   ActionMessage,
+  CreateReceiptResult,
   SaveQuotationInput,
   SaveQuotationResult,
 } from "@/components/admin/actionTypes";
 import { requireAdmin } from "@/lib/auth/requireAdmin";
-import { QUOTATION_NOT_FOUND } from "@/lib/domain/schemas";
-import { quotationService } from "@/lib/services";
+import {
+  QUOTATION_NOT_FOUND,
+  RECEIPT_NOT_FOUND,
+  type DeliveryReceiptInput,
+} from "@/lib/domain/schemas";
+import { deliveryReceiptService, quotationService } from "@/lib/services";
 
 // Every admin action starts with `await requireAdmin()` (see ../../actions-guard.test.ts).
 // Quotations are outside draft and publish, so nothing here touches the cache tags. The
@@ -65,4 +70,44 @@ export async function deleteQuotation(id: string): Promise<ActionMessage> {
     return { ok: false, message: result.formError ?? QUOTATION_NOT_FOUND };
   }
   return { ok: true, message: `Deleted quotation ${existing?.number ?? ""}.` };
+}
+
+export async function createDeliveryReceipt(
+  quotationId: string,
+  input: DeliveryReceiptInput,
+): Promise<CreateReceiptResult> {
+  await requireAdmin();
+  const result = await deliveryReceiptService.create(
+    String(quotationId),
+    input,
+  );
+  if (!result.ok) {
+    return {
+      ok: false,
+      fieldErrors: result.fieldErrors,
+      formError: result.formError,
+    };
+  }
+  const { data } = result;
+  return {
+    ok: true,
+    message: `Receipt ${data.number} created.`,
+    id: data.id,
+    number: data.number,
+  };
+}
+
+export async function deleteDeliveryReceipt(
+  receiptId: string,
+): Promise<ActionMessage> {
+  await requireAdmin();
+  const existing = await deliveryReceiptService.get(String(receiptId));
+  const result = await deliveryReceiptService.delete(String(receiptId));
+  if (!result.ok) {
+    return { ok: false, message: result.formError ?? RECEIPT_NOT_FOUND };
+  }
+  return {
+    ok: true,
+    message: `Deleted receipt ${existing?.receipt.number ?? ""}.`,
+  };
 }

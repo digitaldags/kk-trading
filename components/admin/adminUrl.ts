@@ -48,3 +48,13 @@ export function categoriesUrl({
   if (edit) return `/admin/categories?${new URLSearchParams({ edit })}`;
   return isNew ? "/admin/categories?new=1" : "/admin/categories";
 }
+
+/** A quotation's print page (ticket 23). */
+export function quotationPrintUrl(id: string): string {
+  return `/admin/print/quotations/${encodeURIComponent(id)}`;
+}
+
+/** A delivery receipt's print page (ticket 23). */
+export function receiptPrintUrl(id: string): string {
+  return `/admin/print/receipts/${encodeURIComponent(id)}`;
+}

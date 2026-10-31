@@ -91,10 +91,6 @@
   border-color: var(--err);
 }
 
-.input:read-only {
-  border-color: var(--outline-var);
-}
-
 .priceInput {
   padding-left: 32px;
 }

@@ -92,6 +92,15 @@ export function createDeliveryReceiptService(deps: {
   }
 
   return {
+    /** A quotation's receipts, oldest first, with their items. Empty for an unknown id. */
+    async listForQuotation(
+      quotationId: string,
+    ): Promise<DeliveryReceiptWithItems[]> {
+      return isId(quotationId)
+        ? deps.receipts.listForQuotation(quotationId)
+        : [];
+    },
+
     async newReceiptDefaults(
       quotationId: string,
     ): Promise<ServiceResult<ReceiptDefaults, never>> {

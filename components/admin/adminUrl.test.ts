@@ -3,7 +3,9 @@ import {
   categoriesUrl,
   documentsUrl,
   productsUrl,
+  quotationPrintUrl,
   quotationUrl,
+  receiptPrintUrl,
 } from "./adminUrl";
 
 describe("productsUrl", () => {
@@ -49,5 +51,12 @@ describe("documentsUrl", () => {
 describe("quotationUrl", () => {
   it("links one quotation", () => {
     expect(quotationUrl("abc")).toBe("/admin/documents/abc");
+  });
+});
+
+describe("print URLs", () => {
+  it("link a quotation's and a receipt's print page", () => {
+    expect(quotationPrintUrl("abc")).toBe("/admin/print/quotations/abc");
+    expect(receiptPrintUrl("r1")).toBe("/admin/print/receipts/r1");
   });
 });

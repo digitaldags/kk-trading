@@ -1,11 +1,13 @@
 import type { FieldErrors } from "@/lib/domain/result";
 import type {
   CategoryInput,
+  DeliveryReceiptInput,
   PasswordChangeInput,
   ProductInput,
   QuotationInput,
   StoreSettingsInput,
 } from "@/lib/domain/schemas";
+import type { ReceiptField } from "@/lib/services/deliveryReceiptService";
 import type { QuotationField } from "@/lib/services/quotationService";
 
 // What the admin server actions (app/admin/(console)/actions.ts) take and return. The
@@ -92,3 +94,15 @@ export type SaveQuotationAction = (
 ) => Promise<SaveQuotationResult>;
 /** Mark as completed, Mark as declined or Delete draft. */
 export type QuotationAction = (id: string) => Promise<ActionMessage>;
+
+// Delivery receipts (ticket 22), in the same file.
+
+export type CreateReceiptResult =
+  | { ok: true; message: string; id: string; number: string }
+  | { ok: false; fieldErrors: FieldErrors<ReceiptField>; formError?: string };
+
+export type CreateReceiptAction = (
+  quotationId: string,
+  input: DeliveryReceiptInput,
+) => Promise<CreateReceiptResult>;
+export type DeleteReceiptAction = (receiptId: string) => Promise<ActionMessage>;

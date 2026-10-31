@@ -1,75 +1,7 @@
-/* The quotation editor (Figma 75:915). Panels match Store details (SettingsAdmin). */
-
-.back {
-  margin: 0 0 8px -12px;
-}
-
-.titleRow {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px 24px;
-  margin-bottom: 16px;
-}
-
-.heading {
-  min-width: 0;
-}
-
-.titleLine {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 8px 12px;
-}
-
-.title {
-  margin: 0;
-  overflow-wrap: anywhere;
-}
-
-.meta {
-  margin: 4px 0 0;
-  color: var(--on-surface-var);
-}
-
-.actions {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 8px;
-}
-
-.danger {
-  color: var(--err);
-}
-
-.banner {
-  margin-bottom: 16px;
-}
+/* The quotation editor (Figma 75:915). The header and panels are in DocumentPage.module.css. */
 
 .form {
   display: grid;
-}
-
-/* The prototype's `.panel`, as on Store details. */
-.panel {
-  display: grid;
-  gap: 16px;
-  margin-bottom: 16px;
-  padding: 24px;
-  border-radius: var(--r-lg);
-  background: var(--surface-low);
-}
-
-.panelTitle {
-  margin: 0;
-}
-
-.description {
-  margin: -8px 0 0;
-  color: var(--on-surface-var);
 }
 
 .two {
@@ -157,10 +89,6 @@
   font-weight: 600;
 }
 
-.dialogText {
-  margin: 0;
-}
-
 @media (max-width: 760px) {
   .itemsHeader {
     display: none;
@@ -170,9 +98,5 @@
 @media (max-width: 640px) {
   .two {
     grid-template-columns: minmax(0, 1fr);
-  }
-
-  .panel {
-    padding: 16px;
   }
 }

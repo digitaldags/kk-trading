@@ -1,15 +1,19 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { QuotationEditor } from "@/components/admin/QuotationEditor";
+import { QuotationView } from "@/components/admin/QuotationView";
 import { requireAdmin } from "@/lib/auth/requireAdmin";
 import {
   categoryService,
+  deliveryReceiptService,
   productService,
   quotationService,
 } from "@/lib/services";
 import {
   completeQuotation,
+  createDeliveryReceipt,
   declineQuotation,
+  deleteDeliveryReceipt,
   deleteQuotation,
   saveQuotation,
 } from "../actions";
@@ -21,8 +25,8 @@ export const instant = false;
 export const metadata: Metadata = { title: "Quotation · Admin" };
 
 /**
- * One quotation. A draft opens the editor; completed and declined ones open it
- * read-only until ticket 22 gives them their own view. An unknown id is a 404.
+ * One quotation. A draft opens the editor; a completed or declined one opens the
+ * read-only view, with its delivery receipts once completed. An unknown id is a 404.
  */
 export default async function QuotationPage({
   params,
@@ -30,25 +34,46 @@ export default async function QuotationPage({
   const { id } = await params;
   await requireAdmin();
 
-  const [quotation, { products }, categories] = await Promise.all([
-    quotationService.get(id),
-    productService.listForAdmin(),
-    categoryService.list(),
-  ]);
+  const quotation = await quotationService.get(id);
   if (!quotation) notFound();
 
+  if (quotation.status === "draft") {
+    const [{ products }, categories] = await Promise.all([
+      productService.listForAdmin(),
+      categoryService.list(),
+    ]);
+    return (
+      <QuotationEditor
+        // Remounts as the view once the status changes (completed or declined).
+        key={`${quotation.id}-${quotation.status}`}
+        quotation={quotation}
+        defaults={quotationService.newDraftDefaults()}
+        catalog={products}
+        categories={categories}
+        saveAction={saveQuotation}
+        completeAction={completeQuotation}
+        declineAction={declineQuotation}
+        deleteAction={deleteQuotation}
+      />
+    );
+  }
+
+  const [defaults, receipts] =
+    quotation.status === "completed"
+      ? await Promise.all([
+          deliveryReceiptService.newReceiptDefaults(quotation.id),
+          deliveryReceiptService.listForQuotation(quotation.id),
+        ])
+      : [null, []];
+
   return (
-    <QuotationEditor
-      // Remounts with fresh data once the status changes (completed or declined).
+    <QuotationView
       key={`${quotation.id}-${quotation.status}`}
       quotation={quotation}
-      defaults={quotationService.newDraftDefaults()}
-      catalog={products}
-      categories={categories}
-      saveAction={saveQuotation}
-      completeAction={completeQuotation}
-      declineAction={declineQuotation}
-      deleteAction={deleteQuotation}
+      receiptDefaults={defaults?.ok ? defaults.data : null}
+      receipts={receipts}
+      createReceiptAction={createDeliveryReceipt}
+      deleteReceiptAction={deleteDeliveryReceipt}
     />
   );
 }

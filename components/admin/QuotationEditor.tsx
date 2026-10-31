@@ -7,7 +7,6 @@ import {
   useState,
   useTransition,
   type ChangeEvent,
-  type ReactNode,
 } from "react";
 import { Banner } from "@/components/ui/Banner";
 import { Button } from "@/components/ui/Button";
@@ -31,7 +30,9 @@ import type {
 } from "@/lib/services/quotationService";
 import type { QuotationAction, SaveQuotationAction } from "./actionTypes";
 import { AddProductDialog } from "./AddProductDialog";
-import { quotationUrl } from "./adminUrl";
+import { quotationPrintUrl, quotationUrl } from "./adminUrl";
+import page from "./DocumentPage.module.css";
+import { DocumentPanel as Panel } from "./DocumentPanel";
 import styles from "./QuotationEditor.module.css";
 import { QuotationItemRow, type EditorLine } from "./QuotationItemRow";
 
@@ -94,7 +95,7 @@ const CONFIRM_COPY: Record<
 };
 
 export type QuotationEditorProps = {
-  /** Null for a new quotation, which starts from `defaults`. */
+  /** A draft, or null for a new quotation, which starts from `defaults`. */
   quotation: QuotationWithItems | null;
   defaults: QuotationDraftDefaults;
   /** The live catalog, for Add product and the line thumbnails. */
@@ -151,9 +152,9 @@ function money(compute: () => number): string {
 }
 
 /**
- * The quotation editor (Figma 75:915). It keeps its own state: saving doesn't reload
- * the page, and the first save swaps `/new` for the quotation's URL in place. Completed
- * and declined quotations open read-only (ticket 22 gives them their own view).
+ * The quotation editor (Figma 75:915), for drafts only: completed and declined
+ * quotations open in QuotationView. It keeps its own state: saving doesn't reload the
+ * page, and the first save swaps `/new` for the quotation's URL in place.
  */
 export function QuotationEditor({
   quotation,
@@ -187,9 +188,7 @@ export function QuotationEditor({
   const [adding, setAdding] = useState(false);
   const [confirming, setConfirming] = useState<Confirming | null>(null);
 
-  const status = quotation?.status ?? "draft";
-  const readOnly = status !== "draft";
-  const dirty = !readOnly && serialize(fields, lines) !== snapshot;
+  const dirty = serialize(fields, lines) !== snapshot;
 
   // Leaving with unsaved edits: the browser asks first.
   useEffect(() => {
@@ -327,7 +326,6 @@ export function QuotationEditor({
     id: fieldId(key),
     value: fields[key],
     error: errors[key],
-    readOnly,
     onChange: (event: ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) =>
       set(key, event.target.value),
   });
@@ -343,18 +341,18 @@ export function QuotationEditor({
         prefetch={false}
         variant="text"
         icon="arrow_back"
-        className={styles.back}
+        className={page.back}
       >
         Documents
       </Button>
 
-      <div className={styles.titleRow}>
-        <div className={styles.heading}>
-          <div className={styles.titleLine}>
-            <h1 className={cx(styles.title, "t-headline-small")}>{heading}</h1>
-            <DocumentStatus status={status} />
+      <div className={page.titleRow}>
+        <div className={page.heading}>
+          <div className={page.titleLine}>
+            <h1 className={cx(page.title, "t-headline-small")}>{heading}</h1>
+            <DocumentStatus status="draft" />
           </div>
-          <p className={cx(styles.meta, "t-body-small")}>
+          <p className={cx(page.meta, "t-body-small")}>
             Quotation ·{" "}
             {saved
               ? `Last saved ${formatSavedAt(saved.updatedAt)}`
@@ -362,11 +360,11 @@ export function QuotationEditor({
           </p>
         </div>
 
-        <div className={styles.actions}>
-          {!readOnly && saved && (
+        <div className={page.actions}>
+          {saved && (
             <Button
               variant="text"
-              className={styles.danger}
+              className={page.danger}
               disabled={busy}
               onClick={() => setConfirming("delete")}
             >
@@ -375,7 +373,7 @@ export function QuotationEditor({
           )}
           {saved ? (
             <Button
-              href={`/admin/print/quotations/${saved.id}`}
+              href={quotationPrintUrl(saved.id)}
               target="_blank"
               rel="noopener"
               prefetch={false}
@@ -389,35 +387,30 @@ export function QuotationEditor({
               Print preview
             </Button>
           )}
-          {!readOnly && (
-            <>
-              <Button
-                variant="text"
-                disabled={busy}
-                onClick={() => requestLock("decline")}
-              >
-                Mark as declined
-              </Button>
-              <Button
-                variant="tonal"
-                icon="task_alt"
-                disabled={busy}
-                onClick={() => requestLock("complete")}
-              >
-                Mark as completed
-              </Button>
-              <Button disabled={busy} onClick={handleSave}>
-                Save
-              </Button>
-            </>
-          )}
+          <Button
+            variant="text"
+            disabled={busy}
+            onClick={() => requestLock("decline")}
+          >
+            Mark as declined
+          </Button>
+          <Button
+            variant="tonal"
+            icon="task_alt"
+            disabled={busy}
+            onClick={() => requestLock("complete")}
+          >
+            Mark as completed
+          </Button>
+          <Button disabled={busy} onClick={handleSave}>
+            Save
+          </Button>
         </div>
       </div>
 
-      <Banner className={styles.banner}>
-        {readOnly
-          ? `This quotation is ${status}. It can't be edited.`
-          : "Drafts can be edited. Marking a quotation as completed or declined locks it. Delivery receipts can be created once it is completed."}
+      <Banner className={page.banner}>
+        Drafts can be edited. Marking a quotation as completed or declined locks
+        it. Delivery receipts can be created once it is completed.
       </Banner>
 
       <form
@@ -425,7 +418,7 @@ export function QuotationEditor({
         aria-busy={busy || undefined}
         onSubmit={(event) => {
           event.preventDefault();
-          if (!readOnly) handleSave();
+          handleSave();
         }}
       >
         <Panel title="Quotation details">
@@ -503,7 +496,6 @@ export function QuotationEditor({
                           : "—"
                       }
                       error={errors[`items.${index}`]}
-                      readOnly={readOnly}
                       onChange={(patch) =>
                         changeLines((current) =>
                           current.map((l, i) =>
@@ -527,17 +519,15 @@ export function QuotationEditor({
               {errors.items}
             </p>
           )}
-          {!readOnly && (
-            <div>
-              <Button
-                variant="outlined"
-                icon="add"
-                onClick={() => setAdding(true)}
-              >
-                Add product
-              </Button>
-            </div>
-          )}
+          <div>
+            <Button
+              variant="outlined"
+              icon="add"
+              onClick={() => setAdding(true)}
+            >
+              Add product
+            </Button>
+          </div>
         </Panel>
 
         <Panel
@@ -577,16 +567,14 @@ export function QuotationEditor({
         </Panel>
       </form>
 
-      {!readOnly && (
-        <AddProductDialog
-          open={adding}
-          products={catalog}
-          categories={categories}
-          addedIds={addedIds}
-          onAdd={addProduct}
-          onClose={() => setAdding(false)}
-        />
-      )}
+      <AddProductDialog
+        open={adding}
+        products={catalog}
+        categories={categories}
+        addedIds={addedIds}
+        onAdd={addProduct}
+        onClose={() => setAdding(false)}
+      />
 
       <Dialog
         open={copy !== null}
@@ -615,31 +603,8 @@ export function QuotationEditor({
           </>
         }
       >
-        <p className={styles.dialogText}>{copy?.text}</p>
+        <p className={page.dialogText}>{copy?.text}</p>
       </Dialog>
     </>
-  );
-}
-
-function Panel({
-  title,
-  description,
-  children,
-}: {
-  title: string;
-  description?: string;
-  children: ReactNode;
-}) {
-  const id = useId();
-  return (
-    <section className={styles.panel} aria-labelledby={id}>
-      <h2 id={id} className={cx(styles.panelTitle, "t-title-medium")}>
-        {title}
-      </h2>
-      {description && (
-        <p className={cx(styles.description, "t-body-medium")}>{description}</p>
-      )}
-      {children}
-    </section>
   );
 }

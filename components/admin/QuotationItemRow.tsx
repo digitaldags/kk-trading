@@ -54,7 +54,6 @@ export type QuotationItemRowProps = {
   /** The formatted line total, or "—" when the quantity or price isn't valid. */
   total: string;
   error?: string;
-  readOnly?: boolean;
   onChange: (
     patch: Partial<Pick<EditorLine, "quantity" | "unitPrice">>,
   ) => void;
@@ -67,7 +66,6 @@ export function QuotationItemRow({
   icon,
   total,
   error,
-  readOnly = false,
   onChange,
   onRemove,
 }: QuotationItemRowProps) {
@@ -96,7 +94,6 @@ export function QuotationItemRow({
             value={line.quantity}
             inputMode="numeric"
             autoComplete="off"
-            readOnly={readOnly}
             aria-invalid={error ? true : undefined}
             aria-describedby={errorId}
             className={cx(styles.input, styles.qtyInput, "t-body-large")}
@@ -115,7 +112,6 @@ export function QuotationItemRow({
             value={line.unitPrice}
             inputMode="decimal"
             autoComplete="off"
-            readOnly={readOnly}
             aria-invalid={error ? true : undefined}
             aria-describedby={errorId}
             className={cx(styles.input, styles.priceInput, "t-body-large")}
@@ -124,14 +120,12 @@ export function QuotationItemRow({
         </span>
         <span className={cx(styles.total, "t-label-large")}>{total}</span>
         <span className={styles.remove}>
-          {!readOnly && (
-            <IconButton
-              icon="delete"
-              tone="danger"
-              label={`Remove ${line.code || line.name}`}
-              onClick={onRemove}
-            />
-          )}
+          <IconButton
+            icon="delete"
+            tone="danger"
+            label={`Remove ${line.code || line.name}`}
+            onClick={onRemove}
+          />
         </span>
       </div>
       {error && (
