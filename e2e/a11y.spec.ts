@@ -1,5 +1,6 @@
 import AxeBuilder from "@axe-core/playwright";
 import { expect, test, type Page } from "@playwright/test";
+import { cleanUpE2eDocuments, seedDocuments } from "./helpers";
 
 // Axe scans (ticket 14) of the storefront and admin, run at 1440×900 and 390×844 (the
 // flows-desktop and flows-mobile projects). Serious and critical violations fail;
@@ -101,4 +102,35 @@ test("the admin pages and editors", async ({ page }) => {
   await page.getByRole("button", { name: "Add product" }).click();
   await expect(page.getByRole("dialog", { name: "Add product" })).toBeVisible();
   await scan(page, "add product dialog");
+});
+
+// Ticket 24. Seeded and cleaned up inside the test: a beforeAll would run once per
+// worker, and one worker's cleanup would delete another's documents. Only documents
+// are cleaned up, because flows.spec.ts runs beside this with its own e2e products.
+test("the documents pages", async ({ page }) => {
+  cleanUpE2eDocuments();
+  const seeded = seedDocuments();
+  try {
+    await signIn(page);
+
+    await page.goto(`/admin/documents/${seeded.completed.id}`);
+    await expect(
+      page.getByRole("heading", { level: 1, name: seeded.completed.number }),
+    ).toBeVisible();
+    await scan(page, "completed quotation");
+
+    await page.getByRole("button", { name: "Create delivery receipt" }).click();
+    await expect(
+      page.getByRole("dialog", { name: "Create delivery receipt" }),
+    ).toBeVisible();
+    await scan(page, "create delivery receipt dialog");
+
+    await page.goto(`/admin/print/quotations/${seeded.completed.id}`);
+    await scan(page, "quotation print");
+
+    await page.goto(`/admin/print/receipts/${seeded.receipt.id}`);
+    await scan(page, "receipt print");
+  } finally {
+    cleanUpE2eDocuments();
+  }
 });

@@ -12,10 +12,13 @@ import {
 // - Products named "E2E …" (e2e/admin-products.spec.ts), photos included.
 // - Categories named "E2E …" (e2e/admin-categories.spec.ts). They never keep products.
 // - A store name ending in " E2E" (e2e/admin-settings.spec.ts), put back without it.
-// - Quotations numbered "E2E-…" and their delivery receipts (e2e/admin-print.spec.ts).
-//   Documents are outside draft and publish, so removing them never publishes.
 // If it removed anything, it publishes, so the storefront drops it too. On the dev branch
 // that also publishes any other draft; the e2e specs publish anyway.
+//
+// With `--documents`, it removes only quotations numbered "E2E-…" and their delivery
+// receipts (admin-print, admin-documents and a11y specs), and never publishes: documents
+// are outside draft and publish. They're kept out of the plain run because flows.spec.ts
+// runs that beside a11y.spec.ts, which would lose the documents it just seeded.
 
 /** What e2e/admin-settings.spec.ts appends to the store name. */
 const E2E_NAME_SUFFIX = " E2E";
@@ -46,6 +49,11 @@ async function main() {
   // Sets DATABASE_URL (from .env.local) before the services first connect.
   loadDatabaseUrl();
 
+  if (process.argv.includes("--documents")) {
+    console.log(`Deleted ${await deleteE2eDocuments()} e2e quotations.`);
+    return;
+  }
+
   const { products } = await productService.listForAdmin({ q: "E2E " });
   const leftovers = products.filter((p) => p.name.startsWith("E2E "));
   for (const product of leftovers) await productService.delete(product.id);
@@ -69,10 +77,8 @@ async function main() {
   const changed = leftovers.length > 0 || categories.length > 0 || renamed;
   if (changed) await publishService.publish();
 
-  const documents = await deleteE2eDocuments();
-
   console.log(
-    `Deleted ${leftovers.length} e2e products, ${categories.length} e2e categories and ${documents} e2e quotations${renamed ? ", and restored the store name" : ""}${changed ? ", then published" : ""}.`,
+    `Deleted ${leftovers.length} e2e products and ${categories.length} e2e categories${renamed ? ", and restored the store name" : ""}${changed ? ", then published" : ""}.`,
   );
 }
 

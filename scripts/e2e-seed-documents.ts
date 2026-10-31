@@ -16,7 +16,8 @@ async function main() {
   const run = Date.now();
 
   const { products } = await productService.listForAdmin();
-  const coded = products.filter((p) => p.code);
+  // Not an "E2E …" product: another spec may delete it at any moment.
+  const coded = products.filter((p) => p.code && !p.name.startsWith("E2E "));
   if (coded.length < 2) {
     throw new Error("Needs two products with codes. Run `pnpm db:seed`.");
   }

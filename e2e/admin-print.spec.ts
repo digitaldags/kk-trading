@@ -1,6 +1,10 @@
-import { execFileSync } from "node:child_process";
 import AxeBuilder from "@axe-core/playwright";
 import { expect, test, type Page } from "@playwright/test";
+import {
+  cleanUpE2eDocuments,
+  seedDocuments,
+  type SeededDocuments,
+} from "./helpers";
 
 // The print previews (ticket 23). scripts/e2e-seed-documents.ts makes a completed
 // quotation with one delivery receipt, and a draft, all numbered "E2E-…";
@@ -13,31 +17,16 @@ test.skip(!READY, "Needs DATABASE_URL and the E2E_ADMIN_* test account.");
 
 test.describe.configure({ mode: "serial" });
 
-type Seeded = {
-  completed: { id: string; number: string };
-  draft: { id: string; number: string };
-  receipt: { id: string; number: string; code: string };
-  grandTotal: string;
-};
-
-let seeded: Seeded;
-
-const tsx = (script: string) =>
-  execFileSync(process.execPath, ["node_modules/tsx/dist/cli.mjs", script], {
-    encoding: "utf8",
-  });
+let seeded: SeededDocuments;
 
 test.beforeAll(() => {
   if (!READY) return;
-  tsx("scripts/e2e-cleanup.ts");
-  // The seed prints its JSON on the last line.
-  seeded = JSON.parse(
-    tsx("scripts/e2e-seed-documents.ts").trim().split("\n").at(-1)!,
-  );
+  cleanUpE2eDocuments();
+  seeded = seedDocuments();
 });
 
 test.afterAll(() => {
-  if (READY) tsx("scripts/e2e-cleanup.ts");
+  if (READY) cleanUpE2eDocuments();
 });
 
 async function signIn(page: Page) {
