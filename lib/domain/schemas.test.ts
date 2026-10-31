@@ -1,7 +1,13 @@
 import { describe, expect, it } from "vitest";
-import { productInputSchema, storeSettingsInputSchema } from "./schemas";
+import {
+  deliveryReceiptInputSchema,
+  productInputSchema,
+  quotationInputSchema,
+  storeSettingsInputSchema,
+} from "./schemas";
 
-// The ticket 17 fields. The other rules are covered through the services' tests.
+// The ticket 17 fields and the ticket 19 document schemas. The other rules are covered
+// through the services' tests.
 
 const product = {
   name: "Ergonomic mesh chair",
@@ -114,5 +120,194 @@ describe("storeSettingsInputSchema: slogan, second phone and logo", () => {
         logo: { url: "not a url", pathname: "x" },
       }).success,
     ).toBe(false);
+  });
+});
+
+describe("quotationInputSchema", () => {
+  const productId = "00000000-0000-4000-8000-000000000001";
+  const quotation = {
+    number: " Q-2026-001 ",
+    quoteDate: "2026-10-27",
+    customerName: "Acme Gym",
+  };
+  const parse = (overrides: object) =>
+    quotationInputSchema.safeParse({ ...quotation, ...overrides });
+
+  it("trims the number, defaults the text and allows no items", () => {
+    expect(quotationInputSchema.parse(quotation)).toMatchObject({
+      number: "Q-2026-001",
+      customerAddress: "",
+      notes: "",
+      items: [],
+    });
+  });
+
+  it("needs a number, a date and the customer's name", () => {
+    expect(
+      errorsOf(
+        quotationInputSchema.safeParse({
+          number: "  ",
+          quoteDate: "",
+          customerName: "",
+        }),
+      ),
+    ).toEqual({
+      number: "Enter the quotation number.",
+      quoteDate: "Enter a date.",
+      customerName: "Enter the customer's name.",
+    });
+    expect(errorsOf(quotationInputSchema.safeParse({}))).toMatchObject({
+      number: "Enter the quotation number.",
+      quoteDate: "Enter a date.",
+      customerName: "Enter the customer's name.",
+    });
+  });
+
+  it.each(["2026-02-30", "2026-13-01", "27/10/2026", "2026-1-5"])(
+    "rejects the date %s",
+    (quoteDate) => {
+      expect(errorsOf(parse({ quoteDate }))).toEqual({
+        quoteDate: "Enter a date.",
+      });
+    },
+  );
+
+  it.each([
+    ["number", 60],
+    ["customerName", 120],
+    ["customerAddress", 300],
+    ["customerTin", 40],
+    ["deliveryAddress", 300],
+    ["deliveryTerm", 120],
+    ["paymentTerms", 120],
+    ["remarks", 120],
+    ["leadTime", 120],
+    ["notes", 1000],
+    ["acknowledgement", 1000],
+  ])("limits %s to %i characters", (field, max) => {
+    expect(parse({ [field]: "x".repeat(max) }).success).toBe(true);
+    expect(errorsOf(parse({ [field]: "x".repeat(max + 1) }))).toEqual({
+      [field]: `Use ${max} characters or fewer.`,
+    });
+  });
+
+  it("parses typed quantities and prices", () => {
+    const parsed = quotationInputSchema.parse({
+      ...quotation,
+      items: [{ productId, quantity: "20", unitPrice: "₱2,745.50" }],
+    });
+    expect(parsed.items).toEqual([
+      { productId, quantity: 20, unitPrice: 274550 },
+    ]);
+  });
+
+  it.each([0, -1, 1.5, "", "abc", 100_001])(
+    "rejects the quantity %s",
+    (quantity) => {
+      const result = parse({ items: [{ productId, quantity, unitPrice: 1 }] });
+      expect(result.error?.issues[0]).toMatchObject({
+        path: ["items", 0, "quantity"],
+        message: "Enter a whole number of 1 or more.",
+      });
+    },
+  );
+
+  it("accepts up to 100,000 of a product", () => {
+    expect(
+      parse({ items: [{ productId, quantity: 100_000, unitPrice: 1 }] })
+        .success,
+    ).toBe(true);
+  });
+
+  it("reuses the product price error", () => {
+    const result = parse({
+      items: [{ productId, quantity: 1, unitPrice: "-5" }],
+    });
+    expect(result.error?.issues[0]?.message).toBe(
+      "Enter a price of 0 or more, numbers only.",
+    );
+  });
+
+  it("rejects the same product twice, on the second row", () => {
+    const result = parse({
+      items: [
+        { productId, quantity: 1, unitPrice: 1 },
+        { productId, quantity: 2, unitPrice: 1 },
+      ],
+    });
+    expect(result.error?.issues).toEqual([
+      expect.objectContaining({
+        path: ["items", 1],
+        message: "This product is already on the quotation.",
+      }),
+    ]);
+  });
+});
+
+describe("deliveryReceiptInputSchema", () => {
+  const a = "00000000-0000-4000-8000-000000000001";
+  const b = "00000000-0000-4000-8000-000000000002";
+  const receipt = { number: "DR-1", receiptDate: "2026-10-28" };
+
+  it("drops lines set to 0", () => {
+    const parsed = deliveryReceiptInputSchema.parse({
+      ...receipt,
+      lines: [
+        { quotationItemId: a, quantity: "0" },
+        { quotationItemId: b, quantity: "3" },
+      ],
+    });
+    expect(parsed.lines).toEqual([{ quotationItemId: b, quantity: 3 }]);
+    expect(parsed.deliveryAddress).toBe("");
+  });
+
+  it("needs at least one line left", () => {
+    for (const lines of [[], [{ quotationItemId: a, quantity: 0 }]]) {
+      expect(
+        errorsOf(deliveryReceiptInputSchema.safeParse({ ...receipt, lines })),
+      ).toEqual({ lines: "Enter a quantity for at least one item." });
+    }
+  });
+
+  it("needs a number and a date", () => {
+    expect(
+      errorsOf(
+        deliveryReceiptInputSchema.safeParse({
+          number: "",
+          receiptDate: "2026-02-30",
+          lines: [{ quotationItemId: a, quantity: 1 }],
+        }),
+      ),
+    ).toEqual({
+      number: "Enter the receipt number.",
+      receiptDate: "Enter a date.",
+    });
+  });
+
+  it("rejects negative and fractional quantities, and a line twice", () => {
+    const result = deliveryReceiptInputSchema.safeParse({
+      ...receipt,
+      lines: [
+        { quotationItemId: a, quantity: -1 },
+        { quotationItemId: b, quantity: 1.5 },
+      ],
+    });
+    expect(result.error?.issues.map((i) => i.message)).toEqual([
+      "Enter a whole number of 0 or more.",
+      "Enter a whole number of 0 or more.",
+    ]);
+    const twice = deliveryReceiptInputSchema.safeParse({
+      ...receipt,
+      lines: [
+        { quotationItemId: a, quantity: 1 },
+        { quotationItemId: a, quantity: 1 },
+      ],
+    });
+    expect(twice.error?.issues).toEqual([
+      expect.objectContaining({
+        path: ["lines", 1],
+        message: "This item is already on the receipt.",
+      }),
+    ]);
   });
 });

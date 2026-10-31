@@ -28,6 +28,18 @@ const blobFile = z
   .nullable()
   .optional();
 
+/** A price typed in pesos ("8950", "₱8,950.50"), parsed into centavos. */
+const priceField = z
+  .union([z.string(), z.number()], PRICE_ERROR)
+  .transform((value, ctx) => {
+    const centavos = parsePriceToCentavos(value);
+    if (centavos === null) {
+      ctx.addIssue({ code: "custom", message: PRICE_ERROR });
+      return z.NEVER;
+    }
+    return centavos;
+  });
+
 export const productInputSchema = z.object({
   name: requiredText(80, "Enter a product name."),
   // Optional. Whitespace collapsed, so "KK  CHAIR" and "KK CHAIR" count as the same code.
@@ -50,16 +62,7 @@ export const productInputSchema = z.object({
     .pipe(z.string().max(1000, maxLength(1000)))
     .default(""),
   categoryId: z.uuid("Choose a category."),
-  price: z
-    .union([z.string(), z.number()], PRICE_ERROR)
-    .transform((value, ctx) => {
-      const centavos = parsePriceToCentavos(value);
-      if (centavos === null) {
-        ctx.addIssue({ code: "custom", message: PRICE_ERROR });
-        return z.NEVER;
-      }
-      return centavos;
-    }),
+  price: priceField,
   stockStatus: z.enum(STOCK_STATUSES, "Choose a stock status."),
   keySpec: text(90).default(""),
   description: text(600).default(""),
@@ -140,6 +143,123 @@ export const passwordChangeSchema = z
   });
 
 export type PasswordChangeInput = z.input<typeof passwordChangeSchema>;
+
+// Quotations and delivery receipts (ticket 19).
+
+export const QUOTATION_NOT_FOUND = "That quotation no longer exists.";
+export const QUOTATION_NUMBER_TAKEN =
+  "Another quotation already uses this number.";
+export const RECEIPT_NOT_FOUND = "That delivery receipt no longer exists.";
+export const RECEIPT_NUMBER_TAKEN =
+  "Another delivery receipt already uses this number.";
+
+/** A calendar day, "YYYY-MM-DD", that exists (so not "2026-02-30"). */
+const isoDate = (message: string) =>
+  z
+    .string(message)
+    .trim()
+    .regex(/^\d{4}-\d{2}-\d{2}$/, message)
+    .refine((value) => {
+      const date = new Date(`${value}T00:00:00Z`);
+      return (
+        !Number.isNaN(date.getTime()) &&
+        date.toISOString().slice(0, 10) === value
+      );
+    }, message);
+
+/** A whole number typed in a form (a string) or sent as a number. */
+const wholeNumber = (min: number, max: number, message: string) =>
+  z.coerce.number(message).int(message).min(min, message).max(max, message);
+
+export const MAX_QUOTATION_QUANTITY = 100_000;
+
+const QUANTITY_ERROR = "Enter a whole number of 1 or more.";
+
+export const quotationInputSchema = z.object({
+  number: requiredText(60, "Enter the quotation number."),
+  quoteDate: isoDate("Enter a date."),
+  customerName: requiredText(120, "Enter the customer's name."),
+  customerAddress: text(300).default(""),
+  customerTin: text(40).default(""),
+  deliveryAddress: text(300).default(""),
+  deliveryTerm: text(120).default(""),
+  paymentTerms: text(120).default(""),
+  remarks: text(120).default(""),
+  leadTime: text(120).default(""),
+  notes: text(1000).default(""),
+  acknowledgement: text(1000).default(""),
+  // Drafts may have none; completing needs at least one (quotationService).
+  items: z
+    .array(
+      z.object({
+        productId: z.uuid("Choose a product."),
+        quantity: wholeNumber(1, MAX_QUOTATION_QUANTITY, QUANTITY_ERROR),
+        unitPrice: priceField,
+      }),
+    )
+    .default([])
+    .superRefine((items, ctx) => {
+      const seen = new Set<string>();
+      items.forEach((item, index) => {
+        if (seen.has(item.productId)) {
+          ctx.addIssue({
+            code: "custom",
+            path: [index],
+            message: "This product is already on the quotation.",
+          });
+        }
+        seen.add(item.productId);
+      });
+    }),
+});
+
+export type QuotationInput = z.input<typeof quotationInputSchema>;
+export type QuotationValues = z.output<typeof quotationInputSchema>;
+
+export const NO_RECEIPT_LINES = "Enter a quantity for at least one item.";
+
+export const deliveryReceiptInputSchema = z.object({
+  number: requiredText(60, "Enter the receipt number."),
+  receiptDate: isoDate("Enter a date."),
+  deliveryAddress: text(300).default(""),
+  // Lines set to 0 are left off the receipt.
+  lines: z
+    .array(
+      z.object({
+        quotationItemId: z.uuid(NO_RECEIPT_LINES),
+        quantity: wholeNumber(
+          0,
+          MAX_QUOTATION_QUANTITY,
+          "Enter a whole number of 0 or more.",
+        ),
+      }),
+      NO_RECEIPT_LINES,
+    )
+    .superRefine((lines, ctx) => {
+      const seen = new Set<string>();
+      lines.forEach((line, index) => {
+        if (seen.has(line.quotationItemId)) {
+          ctx.addIssue({
+            code: "custom",
+            path: [index],
+            message: "This item is already on the receipt.",
+          });
+        }
+        seen.add(line.quotationItemId);
+      });
+    })
+    .transform((lines, ctx) => {
+      const delivered = lines.filter((line) => line.quantity > 0);
+      if (!delivered.length) {
+        ctx.addIssue({ code: "custom", message: NO_RECEIPT_LINES });
+        return z.NEVER;
+      }
+      return delivered;
+    }),
+});
+
+export type DeliveryReceiptInput = z.input<typeof deliveryReceiptInputSchema>;
+export type DeliveryReceiptValues = z.output<typeof deliveryReceiptInputSchema>;
 
 /** Sign-in rate limit: failures counted over this window, per email and per IP. */
 export const LOGIN_WINDOW_MS = 15 * 60 * 1000;
