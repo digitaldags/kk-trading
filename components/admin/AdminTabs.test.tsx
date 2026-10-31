@@ -27,6 +27,40 @@ describe("AdminTabs", () => {
     ).not.toHaveAttribute("aria-current");
   });
 
+  it("lists Documents last", () => {
+    pathname = "/admin";
+    render(<AdminTabs />);
+    const links = screen.getAllByRole("link");
+    expect(links.map((l) => l.textContent)).toEqual([
+      "inventory_2Products",
+      "categoryCategories",
+      "storefrontStore details",
+      "descriptionDocuments",
+    ]);
+    expect(links[3]).toHaveAttribute("href", "/admin/documents");
+  });
+
+  it.each(["/admin/documents", "/admin/documents/abc", "/admin/documents/new"])(
+    "marks Documents, and only Documents, on %s",
+    (path) => {
+      pathname = path;
+      render(<AdminTabs />);
+      expect(screen.getByRole("link", { name: "Documents" })).toHaveAttribute(
+        "aria-current",
+        "page",
+      );
+      expect(
+        screen.getByRole("link", { name: "Products" }),
+      ).not.toHaveAttribute("aria-current");
+    },
+  );
+
+  it("matches whole path segments only", () => {
+    pathname = "/admin/categoriesx";
+    render(<AdminTabs />);
+    expect(screen.queryByRole("link", { current: "page" })).toBeNull();
+  });
+
   it("marks Products on /admin", () => {
     pathname = "/admin";
     render(<AdminTabs />);

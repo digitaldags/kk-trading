@@ -1,0 +1,25 @@
+.status {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  flex: none;
+  height: 24px;
+  padding: 0 10px 0 6px;
+  border-radius: var(--r-full);
+  white-space: nowrap;
+}
+
+.draft {
+  background: var(--secondary-container);
+  color: var(--on-secondary-container);
+}
+
+.completed {
+  background: var(--ok-c);
+  color: var(--ok);
+}
+
+.declined {
+  background: var(--err-c);
+  color: var(--err);
+}

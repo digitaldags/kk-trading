@@ -1,3 +1,5 @@
+import type { QuotationStatus } from "@/lib/domain/documents";
+
 /**
  * The products page URL, leaving out empty values: `/admin?q=chair&edit=<id>`.
  * `edit` and `isNew` open the editor; `q` is kept so closing it returns to the search.
@@ -18,6 +20,24 @@ export function productsUrl({
   else if (isNew) params.set("new", "1");
   const search = params.toString();
   return search ? `/admin?${search}` : "/admin";
+}
+
+/** The documents list URL, leaving out empty values: `/admin/documents?q=acme&status=draft`. */
+export function documentsUrl({
+  q,
+  status,
+}: { q?: string | null; status?: QuotationStatus | null } = {}): string {
+  const params = new URLSearchParams();
+  const query = q?.trim();
+  if (query) params.set("q", query);
+  if (status) params.set("status", status);
+  const search = params.toString();
+  return search ? `/admin/documents?${search}` : "/admin/documents";
+}
+
+/** One quotation's page (ticket 21). */
+export function quotationUrl(id: string): string {
+  return `/admin/documents/${encodeURIComponent(id)}`;
 }
 
 /** The categories page URL: `?edit=<id>` or `?new=1` opens the editor. */

@@ -4,6 +4,7 @@ import {
   formatDocumentDate,
   formatPeso,
   formatPesoExact,
+  formatShortDocumentDate,
 } from "@/lib/format";
 
 describe("formatPeso", () => {
@@ -46,5 +47,15 @@ describe("formatDocumentDate", () => {
     ["2026-12-31", "December 31, 2026"],
   ])("formats %s as %s", (date, expected) => {
     expect(formatDocumentDate(date)).toBe(expected);
+  });
+});
+
+describe("formatShortDocumentDate", () => {
+  it.each([
+    ["2026-10-27", "Oct 27, 2026"],
+    ["2026-01-01", "Jan 1, 2026"],
+    ["2026-12-31", "Dec 31, 2026"],
+  ])("formats %s as %s", (date, expected) => {
+    expect(formatShortDocumentDate(date)).toBe(expected);
   });
 });

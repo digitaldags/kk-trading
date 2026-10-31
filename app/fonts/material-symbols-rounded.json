@@ -12,10 +12,12 @@
     "chair",
     "check",
     "check_circle",
+    "chevron_right",
     "close",
     "cloud_done",
     "content_copy",
     "delete",
+    "description",
     "desk",
     "directions_run",
     "edit",
@@ -48,6 +50,7 @@
     "sports_tennis",
     "storefront",
     "table_restaurant",
+    "task_alt",
     "warning"
   ]
 }

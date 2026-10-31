@@ -45,3 +45,15 @@ export function formatDocumentDate(date: string): string {
   // Read and formatted in UTC, so the calendar day never shifts with the time zone.
   return documentDate.format(new Date(`${date}T00:00:00Z`));
 }
+
+const shortDocumentDate = new Intl.DateTimeFormat("en-US", {
+  timeZone: "UTC",
+  year: "numeric",
+  month: "short",
+  day: "numeric",
+});
+
+/** The documents list's date column: "2026-10-27" -> "Oct 27, 2026". */
+export function formatShortDocumentDate(date: string): string {
+  return shortDocumentDate.format(new Date(`${date}T00:00:00Z`));
+}

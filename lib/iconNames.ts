@@ -17,10 +17,12 @@ const UI_ICONS = [
   "call",
   "check",
   "check_circle",
+  "chevron_right",
   "close",
   "cloud_done",
   "content_copy",
   "delete",
+  "description",
   "edit",
   "edit_note",
   "error",
@@ -37,6 +39,7 @@ const UI_ICONS = [
   "search",
   "search_off",
   "storefront",
+  "task_alt",
   "warning",
 ] as const;
 

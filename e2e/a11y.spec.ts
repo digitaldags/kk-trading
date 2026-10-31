@@ -90,4 +90,7 @@ test("the admin pages and editors", async ({ page }) => {
 
   await page.goto("/admin/settings");
   await scan(page, "/admin/settings");
+
+  await page.goto("/admin/documents");
+  await scan(page, "/admin/documents");
 });
