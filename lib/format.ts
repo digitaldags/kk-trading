@@ -57,3 +57,18 @@ const shortDocumentDate = new Intl.DateTimeFormat("en-US", {
 export function formatShortDocumentDate(date: string): string {
   return shortDocumentDate.format(new Date(`${date}T00:00:00Z`));
 }
+
+const savedAt = new Intl.DateTimeFormat("en-US", {
+  timeZone: "Asia/Manila",
+  year: "numeric",
+  month: "short",
+  day: "numeric",
+  hour: "numeric",
+  minute: "2-digit",
+});
+
+/** When a document was last saved, in the shop's time zone: "Oct 27, 2026, 3:42 PM". */
+export function formatSavedAt(date: Date): string {
+  // Intl may put a narrow no-break space before AM/PM; a plain space prints the same.
+  return savedAt.format(date).replace(/\u202f/g, " ");
+}

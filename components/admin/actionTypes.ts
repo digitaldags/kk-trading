@@ -3,8 +3,10 @@ import type {
   CategoryInput,
   PasswordChangeInput,
   ProductInput,
+  QuotationInput,
   StoreSettingsInput,
 } from "@/lib/domain/schemas";
+import type { QuotationField } from "@/lib/services/quotationService";
 
 // What the admin server actions (app/admin/(console)/actions.ts) take and return. The
 // components get the actions as props, so they render the same in tests.
@@ -64,3 +66,29 @@ export type ChangePasswordAction = (
 
 /** Publish or Discard (ticket 15). */
 export type PublishAction = () => Promise<ActionMessage>;
+
+// Quotations (ticket 21): app/admin/(console)/documents/actions.ts.
+
+/** The editor's fields. No `id` creates a draft. */
+export type SaveQuotationInput = QuotationInput & { id?: string };
+
+export type SaveQuotationResult =
+  | {
+      ok: true;
+      message: string;
+      id: string;
+      number: string;
+      /** ISO timestamp, for "Last saved". */
+      updatedAt: string;
+    }
+  | {
+      ok: false;
+      fieldErrors: FieldErrors<QuotationField>;
+      formError?: string;
+    };
+
+export type SaveQuotationAction = (
+  input: SaveQuotationInput,
+) => Promise<SaveQuotationResult>;
+/** Mark as completed, Mark as declined or Delete draft. */
+export type QuotationAction = (id: string) => Promise<ActionMessage>;

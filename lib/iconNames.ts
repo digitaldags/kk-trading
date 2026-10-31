@@ -35,6 +35,7 @@ const UI_ICONS = [
   "mail",
   "manage_accounts",
   "payments",
+  "print",
   "publish",
   "search",
   "search_off",

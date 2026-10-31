@@ -4,6 +4,7 @@ import {
   formatDocumentDate,
   formatPeso,
   formatPesoExact,
+  formatSavedAt,
   formatShortDocumentDate,
 } from "@/lib/format";
 
@@ -57,5 +58,18 @@ describe("formatShortDocumentDate", () => {
     ["2026-12-31", "Dec 31, 2026"],
   ])("formats %s as %s", (date, expected) => {
     expect(formatShortDocumentDate(date)).toBe(expected);
+  });
+});
+
+describe("formatSavedAt", () => {
+  it("shows the date and time in Manila", () => {
+    // 07:42 UTC is 3:42 PM in Manila (UTC+8).
+    expect(formatSavedAt(new Date("2026-10-27T07:42:00Z"))).toBe(
+      "Oct 27, 2026, 3:42 PM",
+    );
+    // Still the 27th in UTC, already the 28th in Manila.
+    expect(formatSavedAt(new Date("2026-10-27T16:05:00Z"))).toBe(
+      "Oct 28, 2026, 12:05 AM",
+    );
   });
 });

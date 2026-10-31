@@ -93,4 +93,12 @@ test("the admin pages and editors", async ({ page }) => {
 
   await page.goto("/admin/documents");
   await scan(page, "/admin/documents");
+
+  // Nothing is written until Save, so scanning the new quotation leaves no data behind.
+  await page.goto("/admin/documents/new");
+  await scan(page, "/admin/documents/new");
+
+  await page.getByRole("button", { name: "Add product" }).click();
+  await expect(page.getByRole("dialog", { name: "Add product" })).toBeVisible();
+  await scan(page, "add product dialog");
 });
