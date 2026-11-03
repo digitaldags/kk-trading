@@ -1,5 +1,12 @@
 import { describe, expect, it } from "vitest";
-import { categoriesUrl, productsUrl } from "./adminUrl";
+import {
+  categoriesUrl,
+  documentsUrl,
+  productsUrl,
+  quotationPrintUrl,
+  quotationUrl,
+  receiptPrintUrl,
+} from "./adminUrl";
 
 describe("productsUrl", () => {
   it("leaves out empty values", () => {
@@ -22,5 +29,34 @@ describe("categoriesUrl", () => {
     expect(categoriesUrl()).toBe("/admin/categories");
     expect(categoriesUrl({ isNew: true })).toBe("/admin/categories?new=1");
     expect(categoriesUrl({ edit: "abc" })).toBe("/admin/categories?edit=abc");
+  });
+});
+
+describe("documentsUrl", () => {
+  it("leaves out empty values", () => {
+    expect(documentsUrl()).toBe("/admin/documents");
+    expect(documentsUrl({ q: " ", status: null })).toBe("/admin/documents");
+  });
+
+  it("combines the search and the status", () => {
+    expect(documentsUrl({ q: " acme gym ", status: "draft" })).toBe(
+      "/admin/documents?q=acme+gym&status=draft",
+    );
+    expect(documentsUrl({ status: "completed" })).toBe(
+      "/admin/documents?status=completed",
+    );
+  });
+});
+
+describe("quotationUrl", () => {
+  it("links one quotation", () => {
+    expect(quotationUrl("abc")).toBe("/admin/documents/abc");
+  });
+});
+
+describe("print URLs", () => {
+  it("link a quotation's and a receipt's print page", () => {
+    expect(quotationPrintUrl("abc")).toBe("/admin/print/quotations/abc");
+    expect(receiptPrintUrl("r1")).toBe("/admin/print/receipts/r1");
   });
 });

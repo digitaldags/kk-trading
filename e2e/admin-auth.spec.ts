@@ -77,6 +77,24 @@ test("signed out, /admin goes to the sign-in page, and signing in lands on /admi
   expect(days).toBeLessThanOrEqual(7);
 });
 
+test("signed out, /admin/documents goes to sign-in, then back to Documents", async ({
+  page,
+}) => {
+  await page.goto("/admin/documents?status=draft");
+  await expect(page).toHaveURL(
+    /\/admin\/login\?next=%2Fadmin%2Fdocuments%3Fstatus%3Ddraft$/,
+  );
+  await signIn(page);
+  await expect(page).toHaveURL(/\/admin\/documents\?status=draft$/);
+  await expect(
+    page.getByRole("link", { name: "Documents", exact: true }),
+  ).toHaveAttribute("aria-current", "page");
+  await expect(page.getByRole("button", { name: "Draft" })).toHaveAttribute(
+    "aria-pressed",
+    "true",
+  );
+});
+
 test("an unknown email gets the same message as a wrong password", async ({
   page,
 }) => {
@@ -210,6 +228,11 @@ test("changing the password signs out other sessions", async ({ page }) => {
   // The page, not the status: a production build sends the admin shell (with 200)
   // before the session check runs. Actions still answer 401 (tested above).
   await page.reload();
+  await expect(
+    page.getByRole("heading", { level: 1, name: "Sign in to continue" }),
+  ).toBeVisible();
+  // The same for Documents: its page calls requireAdmin() too.
+  await page.goto("/admin/documents");
   await expect(
     page.getByRole("heading", { level: 1, name: "Sign in to continue" }),
   ).toBeVisible();

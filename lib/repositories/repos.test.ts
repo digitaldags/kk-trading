@@ -1,11 +1,16 @@
 import type { PGlite } from "@electric-sql/pglite";
-import { afterAll, beforeAll, describe, expect, it } from "vitest";
+import { sql } from "drizzle-orm";
+import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
 import type { Db } from "@/lib/db/client";
+import { queryRows } from "@/lib/db/publish";
 import {
   createSeededTestDb,
   createTestDb,
+  createTestDbAt,
+  runMigrationSql,
   TEST_ADMIN,
 } from "@/lib/db/testing/pglite";
+import { ProductCodeTakenError } from "@/lib/domain/errors";
 import { createAdminUserRepo } from "./adminUserRepo";
 import { createCategoryRepo } from "./categoryRepo";
 import { createLoginAttemptRepo } from "./loginAttemptRepo";
@@ -15,6 +20,10 @@ import { createSettingsRepo } from "./settingsRepo";
 
 // The repositories' SQL against real Postgres (PGlite), with the seed loaded.
 // Read-only tests share one database; tests that write make their own.
+
+// Those tests seed a PGlite database inside the test, which took over 5s under
+// `pnpm test:coverage` once the suite grew (2026-10-31).
+vi.setConfig({ testTimeout: 20_000 });
 
 let db: Db;
 let client: PGlite;
@@ -100,6 +109,94 @@ describe("productRepo.isImageInUse", () => {
         imagePathname: "products/a.webp",
       });
       expect(await repo.isImageInUse(url)).toBe(true);
+    } finally {
+      await own.client.close();
+    }
+  });
+});
+
+describe("product codes", () => {
+  it("finds a product by code, ignoring case", async () => {
+    const repo = createProductRepo(db);
+    expect((await repo.findByCode("kk-chair-01"))?.name).toBe(
+      "Ergonomic mesh chair",
+    );
+    expect(await repo.findByCode("KK-NOPE")).toBeNull();
+  });
+
+  it("seeds each product with a unique code, a unit and spec lines", async () => {
+    const rows = await createProductRepo(db).listWithCategory();
+    const codes = rows.map((r) => r.code.toLowerCase());
+    expect(new Set(codes).size).toBe(rows.length);
+    expect(rows.every((r) => /^KK-[A-Z0-9-]+$/.test(r.code))).toBe(true);
+    expect(rows.every((r) => r.specs.split("\n").length >= 2)).toBe(true);
+    expect(rows.find((r) => r.name === "Rubber hex dumbbells, pair")?.uom).toBe(
+      "pair",
+    );
+  });
+
+  it("throws ProductCodeTakenError when the unique index refuses a write", async () => {
+    const own = await createSeededTestDb();
+    try {
+      const repo = createProductRepo(own.db);
+      const [chair, desk] = await repo.listWithCategory();
+      const {
+        id: _id,
+        createdAt: _c,
+        updatedAt: _u,
+        category: _cat,
+        ...copy
+      } = chair!;
+      await expect(
+        repo.insert({ ...copy, slug: "chair-copy", code: "kk-chair-01" }),
+      ).rejects.toBeInstanceOf(ProductCodeTakenError);
+      await expect(
+        repo.update(desk!.id, { code: "Kk-Chair-01" }),
+      ).rejects.toBeInstanceOf(ProductCodeTakenError);
+      // Any other database error is rethrown as is.
+      await expect(
+        repo.update(desk!.id, { priceCentavos: -1 }),
+      ).rejects.not.toBeInstanceOf(ProductCodeTakenError);
+    } finally {
+      await own.client.close();
+    }
+  });
+});
+
+describe("settingsRepo.isLogoInUse", () => {
+  it("is true for the draft's logo and for the published one", async () => {
+    const own = await createSeededTestDb();
+    try {
+      const settings = createSettingsRepo(own.db);
+      const publish = createPublishRepo(own.db);
+      const logo = (name: string) =>
+        `https://store.public.blob.vercel-storage.com/branding/${name}.png`;
+      const { updatedAt: _, ...values } = (await settings.get())!;
+
+      expect(await settings.isLogoInUse(logo("a"))).toBe(false);
+      await settings.update({
+        ...values,
+        logoUrl: logo("a"),
+        logoPathname: "branding/a.png",
+      });
+      expect(await settings.isLogoInUse(logo("a"))).toBe(true);
+
+      await publish.publish();
+      await settings.update({
+        ...values,
+        logoUrl: logo("b"),
+        logoPathname: "branding/b.png",
+      });
+      // The draft shows b, the storefront still shows a.
+      expect(await settings.isLogoInUse(logo("a"))).toBe(true);
+      expect(await settings.isLogoInUse(logo("b"))).toBe(true);
+
+      await publish.publish();
+      expect(await settings.isLogoInUse(logo("a"))).toBe(false);
+      expect((await publish.getPublished())?.settings).toMatchObject({
+        logoUrl: logo("b"),
+        logoPathname: "branding/b.png",
+      });
     } finally {
       await own.client.close();
     }
@@ -267,6 +364,9 @@ describe("publishRepo (draft and publish)", () => {
         slug: "added-since",
         categoryId: office!.id,
         name: "Added since",
+        code: "ADDED-SINCE",
+        uom: "pcs",
+        specs: "",
         priceCentavos: 100,
         stockStatus: "in_stock",
         keySpec: "",
@@ -281,6 +381,39 @@ describe("publishRepo (draft and publish)", () => {
       expect(await publish.discard()).toBe(true);
       expect(await products.listWithCategory()).toEqual(before);
       expect((await categories.findBySlug("gym"))?.id).toBe(gym!.id);
+      expect(await publish.hasUnpublishedChanges()).toBe(false);
+    });
+  });
+
+  it("discard after editing a code restores the products and the store details", async () => {
+    await withFreshDb(async ({ publish, products, settings }) => {
+      const before = await products.listWithCategory();
+      const settingsBefore = await settings.get();
+      const [chair] = before;
+      await products.update(chair!.id, {
+        code: "KK-CHAIR-99",
+        uom: "set",
+        specs: "Changed",
+      });
+      const { updatedAt: _, ...values } = settingsBefore!;
+      await settings.update({
+        ...values,
+        slogan: "Changed",
+        phone2: "0917 111 1111",
+        logoUrl:
+          "https://store.public.blob.vercel-storage.com/branding/draft.png",
+        logoPathname: "branding/draft.png",
+      });
+      expect(await publish.hasUnpublishedChanges()).toBe(true);
+
+      expect(await publish.discard()).toBe(true);
+      expect(await products.listWithCategory()).toEqual(before);
+      expect(await settings.get()).toMatchObject({
+        slogan: settingsBefore!.slogan,
+        phone2: settingsBefore!.phone2,
+        logoUrl: null,
+        logoPathname: null,
+      });
       expect(await publish.hasUnpublishedChanges()).toBe(false);
     });
   });
@@ -315,6 +448,200 @@ describe("the published_snapshot migration", () => {
       });
     } finally {
       await emptyClient.close();
+    }
+  });
+});
+
+describe("the document_fields migration (0002) on existing data", () => {
+  // A store as it was before ticket 17: migrated to 0001, with rows and a publish.
+  async function storeBefore0002() {
+    const old = await createTestDbAt("0001_published_snapshot");
+    await old.client.exec(`
+      insert into store_settings (id, name, headline, tagline, phone, email, address)
+      values (1, 'KK Trading', 'Equipment', '', '0917', 'hello@example.com', '');
+      insert into categories (id, slug, name, icon, sort_order)
+      values ('00000000-0000-4000-8000-0000000000c1', 'office', 'Office', 'chair', 0);
+      insert into products (id, slug, category_id, name, price_centavos, stock_status, sort_order)
+      values
+        ('00000000-0000-4000-8000-000000000001', 'ergonomic-mesh-chair',
+         '00000000-0000-4000-8000-0000000000c1', 'Ergonomic mesh chair', 895000, 'in_stock', 0),
+        ('00000000-0000-4000-8000-000000000002', 'ergonomic-mesh-chair-2',
+         '00000000-0000-4000-8000-0000000000c1', 'Ergonomic mesh chair', 900000, 'in_stock', 1);
+      insert into published_snapshot (id, data, published_at)
+      values (1, jsonb_build_object(
+        'categories', (select jsonb_agg(to_jsonb(c) order by c.id::text) from categories c),
+        'products', (select jsonb_agg(to_jsonb(p) order by p.id::text) from products p),
+        'settings', (select to_jsonb(s) from store_settings s where s.id = 1)
+      ), now())
+      on conflict (id) do update set data = excluded.data;
+    `);
+    await runMigrationSql(old.client, "0002_document_fields");
+    await runMigrationSql(old.client, "0003_optional_product_code");
+    // The rest, so the repositories' selects find every column they name.
+    await runMigrationSql(old.client, "0004_documents");
+    await runMigrationSql(old.client, "0005_logo_size");
+    return old;
+  }
+
+  it("gives every product a unique code from its slug and keeps the store published", async () => {
+    const { db: migrated, client: migratedClient } = await storeBefore0002();
+    try {
+      const products = createProductRepo(migrated);
+      const publish = createPublishRepo(migrated);
+      expect(
+        (await products.listWithCategory()).map((p) => [
+          p.code,
+          p.uom,
+          p.specs,
+        ]),
+      ).toEqual([
+        ["ERGONOMIC-MESH-CHAIR", "pcs", ""],
+        ["ERGONOMIC-MESH-CHAIR-2", "pcs", ""],
+      ]);
+      // "All changes live" still holds: the snapshot got the same values.
+      expect(await publish.hasUnpublishedChanges()).toBe(false);
+      const published = await publish.getPublished();
+      expect(published?.products.map((p) => p.code)).toEqual([
+        "ERGONOMIC-MESH-CHAIR",
+        "ERGONOMIC-MESH-CHAIR-2",
+      ]);
+      expect(published?.settings).toMatchObject({
+        slogan: "",
+        phone2: "",
+        logoUrl: null,
+        logoPathname: null,
+      });
+    } finally {
+      await migratedClient.close();
+    }
+  });
+
+  it("lets Discard restore products and settings from the backfilled snapshot", async () => {
+    const { db: migrated, client: migratedClient } = await storeBefore0002();
+    try {
+      const products = createProductRepo(migrated);
+      const settings = createSettingsRepo(migrated);
+      const publish = createPublishRepo(migrated);
+      const [chair] = await products.listWithCategory();
+      await products.update(chair!.id, { code: "KK-CHAIR-01" });
+      const { updatedAt: _, ...values } = (await settings.get())!;
+      await settings.update({ ...values, slogan: "FOUNDATION TO FURNISH" });
+
+      expect(await publish.discard()).toBe(true);
+      expect((await products.findById(chair!.id))?.code).toBe(
+        "ERGONOMIC-MESH-CHAIR",
+      );
+      expect((await settings.get())?.slogan).toBe("");
+      expect(await publish.hasUnpublishedChanges()).toBe(false);
+    } finally {
+      await migratedClient.close();
+    }
+  });
+
+  it("leaves a snapshot published before the seed without settings", async () => {
+    const old = await createTestDbAt("0001_published_snapshot");
+    try {
+      await runMigrationSql(old.client, "0002_document_fields");
+      const [row] = await queryRows<{ data: Record<string, unknown> }>(
+        old.db,
+        sql`select data from published_snapshot where id = 1`,
+      );
+      expect(row?.data).toEqual({
+        categories: [],
+        products: [],
+        settings: null,
+      });
+    } finally {
+      await old.client.close();
+    }
+  });
+});
+
+describe("the logo_size migration (0005) on existing data", () => {
+  const LOGO = "https://x.public.blob.vercel-storage.com/branding/kk-logo.png";
+
+  // A store as it was before ticket 40: a logo saved and published, with no size.
+  async function storeBefore0005() {
+    const old = await createTestDbAt("0004_documents");
+    await old.client.exec(`
+      insert into store_settings (id, name, headline, tagline, phone, email, address,
+        logo_url, logo_pathname)
+      values (1, 'KK Trading', 'Equipment', '', '0917', 'hello@example.com', '',
+        '${LOGO}', 'branding/kk-logo.png');
+      insert into published_snapshot (id, data, published_at)
+      values (1, jsonb_build_object(
+        'categories', '[]'::jsonb,
+        'products', '[]'::jsonb,
+        'settings', (select to_jsonb(s) from store_settings s where s.id = 1)
+      ), now())
+      on conflict (id) do update set data = excluded.data;
+    `);
+    await runMigrationSql(old.client, "0005_logo_size");
+    return old;
+  }
+
+  it("keeps the store published, with the logo and no size", async () => {
+    const { db: migrated, client: migratedClient } = await storeBefore0005();
+    try {
+      const publish = createPublishRepo(migrated);
+      expect(await publish.hasUnpublishedChanges()).toBe(false);
+      expect((await publish.getPublished())?.settings).toMatchObject({
+        logoUrl: LOGO,
+        logoWidth: null,
+        logoHeight: null,
+      });
+      expect(await createSettingsRepo(migrated).get()).toMatchObject({
+        logoUrl: LOGO,
+        logoWidth: null,
+        logoHeight: null,
+      });
+    } finally {
+      await migratedClient.close();
+    }
+  });
+
+  it("lets Discard put back the published logo size", async () => {
+    const { db: migrated, client: migratedClient } = await storeBefore0005();
+    try {
+      const settings = createSettingsRepo(migrated);
+      const publish = createPublishRepo(migrated);
+      const { updatedAt: _, ...values } = (await settings.get())!;
+      await settings.update({ ...values, logoWidth: 400, logoHeight: 100 });
+      await publish.publish();
+      expect((await publish.getPublished())?.settings).toMatchObject({
+        logoWidth: 400,
+        logoHeight: 100,
+      });
+
+      await settings.update({
+        ...values,
+        logoUrl: null,
+        logoPathname: null,
+        logoWidth: null,
+        logoHeight: null,
+      });
+      expect(await publish.discard()).toBe(true);
+      expect(await settings.get()).toMatchObject({
+        logoUrl: LOGO,
+        logoWidth: 400,
+        logoHeight: 100,
+      });
+      expect(await publish.hasUnpublishedChanges()).toBe(false);
+    } finally {
+      await migratedClient.close();
+    }
+  });
+
+  it("refuses a width without a height", async () => {
+    const { client: migratedClient } = await storeBefore0005();
+    try {
+      await expect(
+        migratedClient.exec(
+          "update store_settings set logo_width = 400 where id = 1",
+        ),
+      ).rejects.toThrow(/store_settings_logo_size_check/);
+    } finally {
+      await migratedClient.close();
     }
   });
 });

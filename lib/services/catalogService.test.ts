@@ -7,6 +7,12 @@ let service: ReturnType<typeof createCatalogService>;
 
 const SETTINGS = {
   name: "KK Trading",
+  slogan: "",
+  logoUrl: null,
+  logoPathname: null,
+  logoWidth: null,
+  logoHeight: null,
+  phone2: "",
   headline: "Equipment for the desk and the gym",
   tagline: "",
   phone: "",

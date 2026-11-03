@@ -1,6 +1,6 @@
 import { execFileSync } from "node:child_process";
 import { expect, test, type Page } from "@playwright/test";
-import { publish } from "./helpers";
+import { codeFor, pngFile, publish } from "./helpers";
 
 // The core flows from ticket 14, run twice: at 1440×900 (flows-desktop) and 390×844
 // (flows-mobile), see playwright.config.ts. They run after every other spec, one at a
@@ -60,24 +60,6 @@ async function signIn(page: Page, next = "/admin") {
   await expect(page).toHaveURL(new RegExp(`${next.replace(/\//g, "\\/")}$`));
 }
 
-/** A small PNG drawn by the browser, for the photo upload. */
-async function pngFile(page: Page) {
-  const dataUrl = await page.evaluate(() => {
-    const canvas = document.createElement("canvas");
-    canvas.width = 40;
-    canvas.height = 30;
-    const context = canvas.getContext("2d")!;
-    context.fillStyle = "coral";
-    context.fillRect(0, 0, 40, 30);
-    return canvas.toDataURL("image/png");
-  });
-  return {
-    name: "flow.png",
-    mimeType: "image/png",
-    buffer: Buffer.from(dataUrl.split(",")[1]!, "base64"),
-  };
-}
-
 async function addProduct(
   page: Page,
   { name, price, category }: { name: string; price: string; category?: string },
@@ -85,6 +67,7 @@ async function addProduct(
   await page.goto("/admin?new=1");
   const dialog = page.getByRole("dialog", { name: "Add product" });
   await dialog.getByLabel("Product name").fill(name);
+  await dialog.getByLabel("Product code").fill(codeFor(name));
   if (category)
     await dialog.getByLabel("Category").selectOption({ label: category });
   await dialog.getByLabel("Price").fill(price);
@@ -158,7 +141,7 @@ test("4. add a product with a photo, see it on the store, change its price, dele
   if (withPhoto) {
     await dialog
       .locator('input[type="file"]')
-      .setInputFiles(await pngFile(page));
+      .setInputFiles(await pngFile(page, { name: "flow.png", color: "coral" }));
     await expect(
       dialog.getByRole("img", { name: "Product photo" }),
     ).toBeVisible();

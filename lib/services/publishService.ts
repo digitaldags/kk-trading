@@ -1,4 +1,8 @@
-import type { ProductRepo, PublishRepo } from "@/lib/repositories/types";
+import type {
+  ProductRepo,
+  PublishRepo,
+  SettingsRepo,
+} from "@/lib/repositories/types";
 import type { ImageStore } from "./imageStore";
 
 export const NOTHING_PUBLISHED =
@@ -6,39 +10,60 @@ export const NOTHING_PUBLISHED =
 
 /**
  * Draft and publish (ticket 15). Admin edits the live tables; the storefront shows the
- * published snapshot. A product photo is deleted only once neither of them uses it:
- * after a publish, photos only the old snapshot showed; after a discard, photos only the
- * discarded draft had.
+ * published snapshot. A product photo or the store logo is deleted only once neither of
+ * them uses it: after a publish, files only the old snapshot showed; after a discard,
+ * files only the discarded draft had.
  */
 export function createPublishService(deps: {
   publish: PublishRepo;
   products: ProductRepo;
+  settings: SettingsRepo;
   imageStore: ImageStore;
   logError?: (message: string, error: unknown) => void;
 }) {
   const logError = deps.logError ?? console.error;
 
-  /** Deletes the photos in `urls` that no product, draft or published, still uses. */
-  async function deleteUnused(urls: Iterable<string>) {
-    for (const url of new Set(urls)) {
-      if (await deps.products.isImageInUse(url)) continue;
+  type Files = { photos: string[]; logos: string[] };
+
+  /** Deletes the files that nothing, draft or published, still uses. */
+  async function deleteUnused({ photos, logos }: Files) {
+    const unused: { url: string; label: string }[] = [];
+    for (const url of new Set(photos)) {
+      if (!(await deps.products.isImageInUse(url))) {
+        unused.push({ url, label: "product image" });
+      }
+    }
+    for (const url of new Set(logos)) {
+      if (!(await deps.settings.isLogoInUse(url))) {
+        unused.push({ url, label: "store logo" });
+      }
+    }
+    for (const { url, label } of unused) {
       try {
         await deps.imageStore.delete(url);
       } catch (error) {
-        logError(`Couldn't delete product image ${url}`, error);
+        logError(`Couldn't delete ${label} ${url}`, error);
       }
     }
   }
 
-  const draftPhotos = async () =>
-    (await deps.products.listWithCategory()).flatMap((p) =>
-      p.imageUrl ? [p.imageUrl] : [],
-    );
+  const photosOf = (products: { imageUrl: string | null }[]) =>
+    products.flatMap((p) => (p.imageUrl ? [p.imageUrl] : []));
+  const logoOf = (settings: { logoUrl: string | null } | null | undefined) =>
+    settings?.logoUrl ? [settings.logoUrl] : [];
 
-  const publishedPhotos = async () =>
-    ((await deps.publish.getPublished())?.products ?? []).flatMap((p) =>
-      p.imageUrl ? [p.imageUrl] : [],
-    );
+  const draftFiles = async (): Promise<Files> => ({
+    photos: photosOf(await deps.products.listWithCategory()),
+    logos: logoOf(await deps.settings.get()),
+  });
+
+  const publishedFiles = async (): Promise<Files> => {
+    const published = await deps.publish.getPublished();
+    return {
+      photos: photosOf(published?.products ?? []),
+      logos: logoOf(published?.settings),
+    };
+  };
 
   return {
     /** For the app bar pill: whether the draft differs from what's live. */
@@ -46,19 +71,19 @@ export function createPublishService(deps: {
       return { unpublished: await deps.publish.hasUnpublishedChanges() };
     },
 
-    /** Makes the draft live, then deletes photos the store no longer shows. */
+    /** Makes the draft live, then deletes photos and logos the store no longer shows. */
     async publish(): Promise<void> {
-      const before = await publishedPhotos();
+      const before = await publishedFiles();
       await deps.publish.publish();
       await deleteUnused(before);
     },
 
     /**
-     * Puts the draft back to what's live, then deletes photos uploaded since. False when
+     * Puts the draft back to what's live, then deletes files uploaded since. False when
      * nothing was ever published.
      */
     async discard(): Promise<boolean> {
-      const before = await draftPhotos();
+      const before = await draftFiles();
       if (!(await deps.publish.discard())) return false;
       await deleteUnused(before);
       return true;

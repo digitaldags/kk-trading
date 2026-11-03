@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { StoreSettingsInput } from "@/lib/domain/schemas";
 import { createSettingsService } from "./settingsService";
 import { createFakeStore, type FakeStore } from "./testing/fakes";
@@ -17,7 +17,10 @@ const input: StoreSettingsInput = {
 
 beforeEach(() => {
   store = createFakeStore();
-  service = createSettingsService({ settings: store.settingsRepo });
+  service = createSettingsService({
+    settings: store.settingsRepo,
+    imageStore: store.imageStore,
+  });
 });
 
 describe("settingsService", () => {
@@ -41,5 +44,158 @@ describe("settingsService", () => {
 
   it("throws a helpful error when the settings row is missing", async () => {
     await expect(service.get()).rejects.toThrow("pnpm db:seed");
+  });
+
+  it("saves the slogan and second phone, and rejects them over 60 and 40 characters", async () => {
+    const saved = await service.update({
+      ...input,
+      slogan: " FOUNDATION TO FURNISH ",
+      phone2: "+639 77 698 2416",
+    });
+    expect(saved.ok && saved.data).toMatchObject({
+      slogan: "FOUNDATION TO FURNISH",
+      phone2: "+639 77 698 2416",
+    });
+    const tooLong = await service.update({
+      ...input,
+      slogan: "x".repeat(61),
+      phone2: "1".repeat(41),
+    });
+    expect(tooLong).toEqual({
+      ok: false,
+      fieldErrors: {
+        slogan: "Use 60 characters or fewer.",
+        phone2: "Use 40 characters or fewer.",
+      },
+    });
+  });
+});
+
+describe("settingsService logo", () => {
+  const logo = (name: string, width = 400, height = 100) => ({
+    url: `https://store.public.blob.vercel-storage.com/branding/${name}.png`,
+    pathname: `branding/${name}.png`,
+    width,
+    height,
+  });
+
+  it("sets a logo, and keeps it when the input leaves it out", async () => {
+    await service.update({ ...input, logo: logo("a") });
+    const kept = await service.update({ ...input, name: "KK Trading PH" });
+    expect(kept.ok && kept.data).toMatchObject({
+      logoUrl: logo("a").url,
+      logoPathname: logo("a").pathname,
+      logoWidth: 400,
+      logoHeight: 100,
+    });
+    expect(store.imageStore.deleted).toEqual([]);
+  });
+
+  it("rejects a logo outside branding/", async () => {
+    const result = await service.update({
+      ...input,
+      logo: {
+        url: "https://store.public.blob.vercel-storage.com/products/a.png",
+        pathname: "products/a.png",
+        width: 400,
+        height: 100,
+      },
+    });
+    expect(result).toEqual({
+      ok: false,
+      fieldErrors: { logo: "Upload the logo again." },
+    });
+    expect(await store.settingsRepo.get()).toBeNull();
+  });
+
+  it("deletes a replaced logo the published store doesn't show", async () => {
+    await service.update({ ...input, logo: logo("a") });
+    await service.update({ ...input, logo: logo("b", 512, 512) });
+    expect(await service.get()).toMatchObject({
+      logoUrl: logo("b").url,
+      logoWidth: 512,
+      logoHeight: 512,
+    });
+    expect(store.imageStore.deleted).toEqual([logo("a").url]);
+  });
+
+  it("refuses a logo without a whole-pixel size", async () => {
+    const { width: _, ...noWidth } = logo("a");
+    const missing = await service.update({
+      ...input,
+      logo: noWidth as ReturnType<typeof logo>,
+    });
+    const fractional = await service.update({
+      ...input,
+      logo: logo("a", 400.5, 100),
+    });
+    expect(missing.ok).toBe(false);
+    expect(fractional.ok).toBe(false);
+    expect(await store.settingsRepo.get()).toBeNull();
+  });
+
+  it("keeps a replaced or removed logo while the published store shows it", async () => {
+    await service.update({ ...input, logo: logo("a") });
+    await store.publishRepo.publish();
+
+    await service.update({ ...input, logo: logo("b") });
+    expect(store.imageStore.deleted).toEqual([]);
+
+    // Removed from the draft too: still published, so still kept.
+    await service.update({ ...input, logo: null });
+    expect((await service.get()).logoUrl).toBeNull();
+    expect(store.imageStore.deleted).toEqual([logo("b").url]);
+  });
+
+  it("removes the logo with null", async () => {
+    await service.update({ ...input, logo: logo("a") });
+    const result = await service.update({ ...input, logo: null });
+    expect(result.ok && result.data).toMatchObject({
+      logoUrl: null,
+      logoPathname: null,
+      logoWidth: null,
+      logoHeight: null,
+    });
+    expect(store.imageStore.deleted).toEqual([logo("a").url]);
+  });
+
+  it("keeps the old logo when the save fails", async () => {
+    await service.update({ ...input, logo: logo("a") });
+    store.failNextWrite();
+    await expect(service.update({ ...input, logo: logo("b") })).rejects.toThrow(
+      "Simulated database failure",
+    );
+    expect((await service.get()).logoUrl).toBe(logo("a").url);
+    expect(store.imageStore.deleted).toEqual([]);
+  });
+
+  it("still saves, and logs, when the old logo can't be deleted", async () => {
+    const logError = vi.fn();
+    const failing = createSettingsService({
+      settings: store.settingsRepo,
+      imageStore: {
+        delete: async () => {
+          throw new Error("Blob unavailable");
+        },
+      },
+      logError,
+    });
+    await failing.update({ ...input, logo: logo("a") });
+    const result = await failing.update({ ...input, logo: logo("b") });
+    expect(result.ok).toBe(true);
+    expect(logError).toHaveBeenCalledWith(
+      `Couldn't delete store logo ${logo("a").url}`,
+      expect.any(Error),
+    );
+  });
+
+  it("discardUnusedLogo deletes an unsaved upload, never a logo in use or another file", async () => {
+    await service.update({ ...input, logo: logo("saved") });
+    await service.discardUnusedLogo(logo("saved").url);
+    await service.discardUnusedLogo(
+      "https://store.public.blob.vercel-storage.com/products/a.webp",
+    );
+    await service.discardUnusedLogo(logo("unsaved").url);
+    expect(store.imageStore.deleted).toEqual([logo("unsaved").url]);
   });
 });

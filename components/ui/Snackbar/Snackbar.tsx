@@ -17,11 +17,14 @@ import styles from "./Snackbar.module.css";
 /** How long each message stays on screen. */
 export const SNACKBAR_DURATION_MS = 4200;
 
-type Message = { id: number; text: string };
+/** A link after the text, opened in a new tab: "Receipt DR-1 created. Print". */
+export type SnackbarAction = { label: string; href: string };
+
+type Message = { id: number; text: string; action?: SnackbarAction };
 
 type SnackbarContextValue = {
   /** Queues a message. Messages show one at a time. */
-  show: (text: string) => void;
+  show: (text: string, action?: SnackbarAction) => void;
 };
 
 type RegionContextValue = {
@@ -30,6 +33,8 @@ type RegionContextValue = {
   activeRegion: string;
   /** Returns the cleanup that removes the region again. */
   register: (id: string) => () => void;
+  /** Holds the current message while it's hovered or focused, so its link can be reached. */
+  setPaused: (paused: boolean) => void;
 };
 
 const PAGE_REGION = "page";
@@ -40,13 +45,14 @@ const RegionContext = createContext<RegionContextValue | null>(null);
 export function SnackbarProvider({ children }: { children: ReactNode }) {
   const [queue, setQueue] = useState<Message[]>([]);
   const [regions, setRegions] = useState<string[]>([]);
+  const [paused, setPaused] = useState(false);
   const nextId = useRef(0);
   const current = queue[0];
 
-  const show = useCallback((text: string) => {
+  const show = useCallback((text: string, action?: SnackbarAction) => {
     nextId.current += 1;
     const id = nextId.current;
-    setQueue((q) => [...q, { id, text }]);
+    setQueue((q) => [...q, { id, text, ...(action ? { action } : {}) }]);
   }, []);
 
   const register = useCallback((id: string) => {
@@ -55,13 +61,13 @@ export function SnackbarProvider({ children }: { children: ReactNode }) {
   }, []);
 
   useEffect(() => {
-    if (!current) return;
+    if (!current || paused) return;
     const timer = setTimeout(
       () => setQueue((q) => q.slice(1)),
       SNACKBAR_DURATION_MS,
     );
     return () => clearTimeout(timer);
-  }, [current]);
+  }, [current, paused]);
 
   const value = useMemo(() => ({ show }), [show]);
   const region = useMemo(
@@ -69,6 +75,7 @@ export function SnackbarProvider({ children }: { children: ReactNode }) {
       current,
       activeRegion: regions[regions.length - 1] ?? PAGE_REGION,
       register,
+      setPaused,
     }),
     [current, regions, register],
   );
@@ -106,8 +113,29 @@ function Region({ id }: { id: string }) {
   return (
     <div role="status" aria-live="polite" className={styles.region}>
       {message && (
-        <div key={message.id} className={cx(styles.snackbar, "t-body-medium")}>
-          {message.text}
+        <div
+          key={message.id}
+          className={cx(
+            styles.snackbar,
+            message.action && styles.withAction,
+            "t-body-medium",
+          )}
+          onMouseEnter={() => context?.setPaused(true)}
+          onMouseLeave={() => context?.setPaused(false)}
+          onFocus={() => context?.setPaused(true)}
+          onBlur={() => context?.setPaused(false)}
+        >
+          <span>{message.text}</span>
+          {message.action && (
+            <a
+              href={message.action.href}
+              target="_blank"
+              rel="noopener"
+              className={cx(styles.action, "t-label-large")}
+            >
+              {message.action.label}
+            </a>
+          )}
         </div>
       )}
     </div>

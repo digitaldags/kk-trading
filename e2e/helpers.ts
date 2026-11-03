@@ -1,6 +1,19 @@
+import { execFileSync } from "node:child_process";
 import { expect, type Page } from "@playwright/test";
 
 // Shared by the admin specs.
+
+/**
+ * A product code for an e2e product (ticket 17): its name in capitals with dashes, so it's
+ * unique because the name carries the run's timestamp. Capped at the 40-character limit.
+ */
+export function codeFor(name: string) {
+  return name
+    .toUpperCase()
+    .replace(/[^A-Z0-9]+/g, "-")
+    .replace(/^-|-$/g, "")
+    .slice(-40);
+}
 
 /**
  * Publishes the draft from the Publish bar (ticket 15), so `/` shows it. Admin saves only
@@ -15,4 +28,58 @@ export async function publish(page: Page) {
     page.getByRole("status").filter({ hasText: "Your changes are live." }),
   ).toBeVisible();
   await expect(page.getByText("All changes live")).toBeVisible();
+}
+
+/** A PNG drawn by the browser, for the photo and logo uploads. */
+export async function pngFile(
+  page: Page,
+  { width = 40, height = 30, name = "photo.png", color = "teal" } = {},
+) {
+  const dataUrl = await page.evaluate(
+    ({ width, height, color }) => {
+      const canvas = document.createElement("canvas");
+      canvas.width = width;
+      canvas.height = height;
+      const context = canvas.getContext("2d")!;
+      context.fillStyle = color;
+      context.fillRect(0, 0, width, height);
+      return canvas.toDataURL("image/png");
+    },
+    { width, height, color },
+  );
+  return {
+    name,
+    mimeType: "image/png",
+    buffer: Buffer.from(dataUrl.split(",")[1]!, "base64"),
+  };
+}
+
+/** Runs a script under scripts/ with tsx, as the admin specs do, and returns its output. */
+export function runScript(script: string, ...args: string[]): string {
+  return execFileSync(
+    process.execPath,
+    ["node_modules/tsx/dist/cli.mjs", script, ...args],
+    { encoding: "utf8" },
+  );
+}
+
+/** What scripts/e2e-seed-documents.ts made (tickets 23 and 24). */
+export type SeededDocuments = {
+  completed: { id: string; number: string };
+  draft: { id: string; number: string };
+  receipt: { id: string; number: string; code: string };
+  grandTotal: string;
+};
+
+/** A completed quotation with one receipt, and a draft, all numbered "E2E-…". */
+export function seedDocuments(): SeededDocuments {
+  // The seed prints its JSON on the last line.
+  return JSON.parse(
+    runScript("scripts/e2e-seed-documents.ts").trim().split("\n").at(-1)!,
+  ) as SeededDocuments;
+}
+
+/** Deletes every "E2E-…" quotation and its receipts (scripts/e2e-cleanup.ts --documents). */
+export function cleanUpE2eDocuments() {
+  runScript("scripts/e2e-cleanup.ts", "--documents");
 }

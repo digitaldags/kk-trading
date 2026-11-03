@@ -162,3 +162,29 @@
   letter-spacing: 0.4px;
   text-transform: uppercase;
 }
+
+/* Print (ticket 23): the A4 quotation and delivery receipt, sized like the owner's
+   sample documents. Roboto is self-hosted at 400–500, so headings use 500. */
+.t-print-body {
+  font-family: var(--font-body);
+  font-size: 11px;
+  line-height: 15px;
+  font-weight: 400;
+  letter-spacing: 0;
+}
+
+.t-print-strong {
+  font-family: var(--font-body);
+  font-size: 11px;
+  line-height: 15px;
+  font-weight: 500;
+  letter-spacing: 0;
+}
+
+.t-print-heading {
+  font-family: var(--font-body);
+  font-size: 13px;
+  line-height: 18px;
+  font-weight: 500;
+  letter-spacing: 0;
+}

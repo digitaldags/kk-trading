@@ -5,6 +5,7 @@ import { Banner } from "@/components/ui/Banner";
 import { Button, type ButtonVariant } from "@/components/ui/Button";
 import { CategoryRow } from "@/components/ui/CategoryRow";
 import { Dialog } from "@/components/ui/Dialog";
+import { DocumentStatus } from "@/components/ui/DocumentStatus";
 import { FilterChip } from "@/components/ui/FilterChip";
 import { IconButton } from "@/components/ui/IconButton";
 import { ProductCard } from "@/components/ui/ProductCard";
@@ -13,6 +14,7 @@ import { SegmentedButtons } from "@/components/ui/SegmentedButtons";
 import { useSnackbar } from "@/components/ui/Snackbar";
 import { StockStatus } from "@/components/ui/StockStatus";
 import { TextField } from "@/components/ui/TextField";
+import { QUOTATION_STATUSES } from "@/lib/domain/documents";
 import {
   STOCK_LABELS,
   STOCK_STATUSES,
@@ -88,6 +90,14 @@ export function ComponentDemos() {
         <div className={styles.row}>
           {STOCK_STATUSES.map((status) => (
             <StockStatus key={status} status={status} />
+          ))}
+        </div>
+      </Section>
+
+      <Section id="document-status" title="Document status">
+        <div className={styles.row}>
+          {QUOTATION_STATUSES.map((status) => (
+            <DocumentStatus key={status} status={status} />
           ))}
         </div>
       </Section>

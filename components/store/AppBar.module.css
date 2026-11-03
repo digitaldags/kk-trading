@@ -41,6 +41,14 @@
   color: var(--on-primary-container);
 }
 
+/* The store logo, in place of .mark (ticket 40). Its width and height attributes
+   come from the stored size; contain covers a logo saved without one (40 × 40). */
+.logo {
+  display: block;
+  flex: none;
+  object-fit: contain;
+}
+
 .name {
   overflow: hidden;
   white-space: nowrap;

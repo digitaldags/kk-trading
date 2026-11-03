@@ -85,8 +85,11 @@ export function restoreFromSnapshot(q: Db) {
     `),
     q.execute(sql`
       update store_settings s
-      set name = r.name, headline = r.headline, tagline = r.tagline, phone = r.phone,
-          email = r.email, address = r.address, updated_at = now()
+      set name = r.name, slogan = r.slogan, logo_url = r.logo_url,
+          logo_pathname = r.logo_pathname, logo_width = r.logo_width,
+          logo_height = r.logo_height, headline = r.headline, tagline = r.tagline,
+          phone = r.phone, phone2 = r.phone2, email = r.email, address = r.address,
+          updated_at = now()
       from jsonb_populate_record(null::store_settings, ${snapshot("settings")}) r
       where s.id = 1 and ${snapshot("settings")} is not null
     `),

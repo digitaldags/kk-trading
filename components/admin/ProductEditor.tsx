@@ -28,6 +28,7 @@ import {
   type StockStatus,
 } from "@/lib/domain/stock";
 import type { Category, Product } from "@/lib/domain/types";
+import { UOM_LABELS, UOMS, type Uom } from "@/lib/domain/uom";
 import type {
   DiscardUploadAction,
   ProductField,
@@ -47,11 +48,14 @@ const STOCK_OPTIONS = STOCK_STATUSES.map((value) => ({
 /** Fields in the order they're shown, so the first error gets focus. */
 const FIELD_ORDER: ProductField[] = [
   "name",
+  "code",
+  "uom",
   "categoryId",
   "price",
   "stockStatus",
   "keySpec",
   "description",
+  "specs",
   "image",
 ];
 
@@ -59,11 +63,14 @@ const fieldsSchema = productInputSchema.omit({ image: true });
 
 type Fields = {
   name: string;
+  code: string;
+  uom: Uom;
   categoryId: string;
   price: string;
   stockStatus: StockStatus;
   keySpec: string;
   description: string;
+  specs: string;
 };
 
 /** The photo as the editor shows it. `uploaded` is set once a new photo is in Blob. */
@@ -102,11 +109,14 @@ function initialFields(
 ): Fields {
   return {
     name: product?.name ?? "",
+    code: product?.code ?? "",
+    uom: product?.uom ?? "pcs",
     categoryId: product?.categoryId ?? categories[0]?.id ?? "",
     price: product ? priceInputValue(product.priceCentavos) : "",
     stockStatus: product?.stockStatus ?? "in_stock",
     keySpec: product?.keySpec ?? "",
     description: product?.description ?? "",
+    specs: product?.specs ?? "",
   };
 }
 
@@ -325,6 +335,32 @@ export function ProductEditor({
             />
             <div className={styles.two}>
               <TextField
+                id={fieldId("code")}
+                label="Product code"
+                value={fields.code}
+                maxLength={40}
+                placeholder="e.g. KK-CHAIR-01"
+                autoComplete="off"
+                error={errors.code}
+                onChange={(e) => set("code", e.target.value)}
+              />
+              <TextField
+                kind="select"
+                id={fieldId("uom")}
+                label="Unit of measure"
+                value={fields.uom}
+                error={errors.uom}
+                onChange={(e) => set("uom", e.target.value as Uom)}
+              >
+                {UOMS.map((uom) => (
+                  <option key={uom} value={uom}>
+                    {UOM_LABELS[uom]}
+                  </option>
+                ))}
+              </TextField>
+            </div>
+            <div className={styles.two}>
+              <TextField
                 kind="select"
                 id={fieldId("categoryId")}
                 label="Category"
@@ -381,6 +417,17 @@ export function ProductEditor({
               rows={3}
               error={errors.description}
               onChange={(e) => set("description", e.target.value)}
+            />
+            <TextField
+              kind="multiline"
+              id={fieldId("specs")}
+              label="Specifications"
+              value={fields.specs}
+              maxLength={1000}
+              rows={6}
+              hint="One spec per line, including dimensions. Printed under the product code on quotations and delivery receipts."
+              error={errors.specs}
+              onChange={(e) => set("specs", e.target.value)}
             />
 
             <fieldset className={styles.photoField}>

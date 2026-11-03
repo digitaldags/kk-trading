@@ -15,6 +15,34 @@
       "when": 1792727593013,
       "tag": "0001_published_snapshot",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1793176278109,
+      "tag": "0002_document_fields",
+      "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1793179970203,
+      "tag": "0003_optional_product_code",
+      "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1793180849863,
+      "tag": "0004_documents",
+      "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1793704116022,
+      "tag": "0005_logo_size",
+      "breakpoints": true
     }
   ]
 }

@@ -19,6 +19,8 @@ const ADMIN_WRITES = [
   "admin-categories",
   "admin-publish",
   "admin-settings",
+  "admin-print",
+  "admin-documents",
 ];
 
 export default defineConfig({
@@ -43,7 +45,8 @@ export default defineConfig({
     // The specs that change shared data run after the rest, one after another: they add
     // and delete products and categories (which would change the counts the storefront
     // specs check), rename the store, and change the password (which signs out every
-    // session of the account, admin-auth's included).
+    // session of the account, admin-auth's included). admin-print and admin-documents
+    // add and delete e2e quotations, and sign in, so they stay away from admin-auth too.
     ...ADMIN_WRITES.map((spec, index) => ({
       name: spec,
       use: { ...devices["Desktop Chrome"] },

@@ -15,6 +15,9 @@ const BENCH: ProductWithCategory = {
   slug: "adjustable-fid-bench",
   categoryId: "00000000-0000-4000-8000-0000000000c1",
   name: "Adjustable FID bench",
+  code: "KK-BENCH-01",
+  uom: "unit",
+  specs: "",
   priceCentavos: 545000,
   stockStatus: "low_stock",
   keySpec: "7 back positions",
@@ -36,6 +39,12 @@ const BENCH: ProductWithCategory = {
 
 const SETTINGS: StoreSettings = {
   name: "KK Trading",
+  slogan: "",
+  logoUrl: null,
+  logoPathname: null,
+  logoWidth: null,
+  logoHeight: null,
+  phone2: "",
   headline: "Equipment for the desk and the gym",
   tagline: "Office furniture and fitness gear.",
   phone: "0917 000 0000",
@@ -111,6 +120,22 @@ describe("storeJsonLd", () => {
     );
     expect(data).not.toHaveProperty("telephone");
     expect(data).not.toHaveProperty("address");
+  });
+
+  it("names the published logo, and leaves logo out without one", () => {
+    const page = {
+      url: "https://kktrading.ph/",
+      image: "https://kktrading.ph/og",
+    };
+    const logoUrl =
+      "https://store.public.blob.vercel-storage.com/branding/kk.png";
+    expect(
+      storeJsonLd(
+        { ...SETTINGS, logoUrl, logoWidth: 400, logoHeight: 100 },
+        page,
+      ),
+    ).toMatchObject({ logo: logoUrl, image: page.image });
+    expect(storeJsonLd(SETTINGS, page)).not.toHaveProperty("logo");
   });
 });
 

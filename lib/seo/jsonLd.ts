@@ -57,6 +57,8 @@ export function storeJsonLd(
     description: settings.tagline || settings.headline,
     url,
     image,
+    // The published store logo (ticket 40), when there is one.
+    ...(settings.logoUrl ? { logo: settings.logoUrl } : {}),
     ...(settings.phone ? { telephone: settings.phone } : {}),
     ...(settings.email ? { email: settings.email } : {}),
     ...(settings.address ? { address: settings.address } : {}),

@@ -1,0 +1,102 @@
+/* The quotation editor (Figma 75:915). The header and panels are in DocumentPage.module.css. */
+
+.form {
+  display: grid;
+}
+
+.two {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  align-items: start;
+  gap: 12px;
+}
+
+.hint {
+  margin: -4px 0 0;
+  color: var(--on-surface-var);
+}
+
+.error {
+  margin: 0;
+  color: var(--err);
+}
+
+.empty {
+  margin: 0;
+  color: var(--on-surface-var);
+}
+
+/* Item, UOM, Qty, Unit price, Total and Remove, shared with QuotationItemRow. */
+.items {
+  --item-columns: 48px minmax(0, 1fr) 48px 88px 130px 120px 40px;
+}
+
+.itemsHeader {
+  display: grid;
+  grid-template-columns: var(--item-columns);
+  gap: 12px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid var(--outline-var);
+  color: var(--on-surface-var);
+}
+
+.itemColumn {
+  grid-column: span 2;
+}
+
+.end {
+  text-align: right;
+}
+
+.lines {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.totals {
+  display: grid;
+  justify-self: end;
+  width: min(100%, 300px);
+  margin: 0;
+}
+
+.totalRow,
+.grandRow {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.totalRow {
+  padding-bottom: 8px;
+  border-bottom: 1px solid var(--outline-var);
+  color: var(--on-surface-var);
+}
+
+.grandRow {
+  align-items: baseline;
+  padding-top: 12px;
+  color: var(--on-surface);
+}
+
+.totals dd {
+  margin: 0;
+  font-variant-numeric: tabular-nums;
+}
+
+.grandTotal {
+  font-weight: 600;
+}
+
+@media (max-width: 760px) {
+  .itemsHeader {
+    display: none;
+  }
+}
+
+@media (max-width: 640px) {
+  .two {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}

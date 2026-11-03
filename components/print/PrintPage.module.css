@@ -1,0 +1,64 @@
+/* The print preview around the A4 sheet. @page and the print background are in
+   app/admin/print/print.css. */
+
+.page {
+  min-height: 100vh;
+  padding: 16px 16px 48px;
+  background: var(--surface-c);
+}
+
+.toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 16px;
+  max-width: 210mm;
+  margin: 0 auto 16px;
+}
+
+.back {
+  margin-left: -12px;
+}
+
+.hint {
+  flex: 1 1 240px;
+  color: var(--on-surface-var);
+}
+
+/* Narrow screens scroll the sheet sideways inside here, never the page. */
+.scroller {
+  overflow-x: auto;
+}
+
+.sheet {
+  width: 210mm;
+  margin: 0 auto;
+  padding: 14mm;
+  background: var(--surface);
+  color: var(--on-surface);
+  box-shadow: var(--shadow-1);
+  print-color-adjust: exact;
+  -webkit-print-color-adjust: exact;
+}
+
+@media print {
+  .page {
+    min-height: 0;
+    padding: 0;
+    background: none;
+  }
+
+  .toolbar {
+    display: none;
+  }
+
+  .scroller {
+    overflow: visible;
+  }
+
+  .sheet {
+    width: auto;
+    padding: 0;
+    box-shadow: none;
+  }
+}

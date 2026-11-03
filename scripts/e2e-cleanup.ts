@@ -1,4 +1,5 @@
 import { describeError, loadDatabaseUrl } from "@/lib/db/env";
+import { deliveryReceiptRepo, quotationRepo } from "@/lib/repositories";
 import {
   categoryService,
   productService,
@@ -13,13 +14,45 @@ import {
 // - A store name ending in " E2E" (e2e/admin-settings.spec.ts), put back without it.
 // If it removed anything, it publishes, so the storefront drops it too. On the dev branch
 // that also publishes any other draft; the e2e specs publish anyway.
+//
+// With `--documents`, it removes only quotations numbered "E2E-…" and their delivery
+// receipts (admin-print, admin-documents and a11y specs), and never publishes: documents
+// are outside draft and publish. They're kept out of the plain run because flows.spec.ts
+// runs that beside a11y.spec.ts, which would lose the documents it just seeded.
 
 /** What e2e/admin-settings.spec.ts appends to the store name. */
 const E2E_NAME_SUFFIX = " E2E";
 
+/** How e2e quotations and receipts are numbered (scripts/e2e-seed-documents.ts). */
+const E2E_NUMBER_PREFIX = "E2E-";
+
+/**
+ * Deletes "E2E-…" quotations, receipts first. Through the repositories, not the services:
+ * quotationService only deletes drafts, and the e2e quotations are completed.
+ */
+async function deleteE2eDocuments(): Promise<number> {
+  const quotations = (
+    await quotationRepo.list({ q: E2E_NUMBER_PREFIX })
+  ).filter((q) => q.number.startsWith(E2E_NUMBER_PREFIX));
+  for (const quotation of quotations) {
+    for (const receipt of await deliveryReceiptRepo.listForQuotation(
+      quotation.id,
+    )) {
+      await deliveryReceiptRepo.delete(receipt.id);
+    }
+    await quotationRepo.delete(quotation.id);
+  }
+  return quotations.length;
+}
+
 async function main() {
   // Sets DATABASE_URL (from .env.local) before the services first connect.
   loadDatabaseUrl();
+
+  if (process.argv.includes("--documents")) {
+    console.log(`Deleted ${await deleteE2eDocuments()} e2e quotations.`);
+    return;
+  }
 
   const { products } = await productService.listForAdmin({ q: "E2E " });
   const leftovers = products.filter((p) => p.name.startsWith("E2E "));

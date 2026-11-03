@@ -79,20 +79,31 @@ describe("ProductEditor", () => {
     const dialog = renderEditor();
     expect(within(dialog).getByLabelText("Category")).toHaveValue(OFFICE.id);
     fireEvent.change(field("Product name"), { target: { value: "Desk lamp" } });
+    fireEvent.change(field("Product code"), {
+      target: { value: "KK-LAMP-01" },
+    });
     fireEvent.change(field("Price"), { target: { value: "1,250.50" } });
     fireEvent.change(field("Category"), { target: { value: GYM.id } });
     fireEvent.click(screen.getByRole("button", { name: "Low stock" }));
     fireEvent.change(field("Key spec"), { target: { value: "LED, 3 levels" } });
+    expect(field("Unit of measure")).toHaveValue("pcs");
+    fireEvent.change(field("Unit of measure"), { target: { value: "set" } });
+    fireEvent.change(field("Specifications"), {
+      target: { value: "Height 45 cm\nWarm white" },
+    });
     await submit("Add product");
 
     expect(saveAction).toHaveBeenCalledWith({
       id: undefined,
       name: "Desk lamp",
+      code: "KK-LAMP-01",
+      uom: "set",
       categoryId: GYM.id,
       price: "1,250.50",
       stockStatus: "low_stock",
       keySpec: "LED, 3 levels",
       description: "",
+      specs: "Height 45 cm\nWarm white",
       image: undefined,
     });
     expect(onSaved).toHaveBeenCalledWith("Added Desk lamp.");
@@ -102,6 +113,9 @@ describe("ProductEditor", () => {
   it("keeps an invalid price on the price field, focused, without saving", async () => {
     renderEditor();
     fireEvent.change(field("Product name"), { target: { value: "Desk lamp" } });
+    fireEvent.change(field("Product code"), {
+      target: { value: "KK-LAMP-01" },
+    });
     fireEvent.change(field("Price"), { target: { value: "abc" } });
     await submit("Add product");
 
@@ -167,6 +181,9 @@ describe("ProductEditor", () => {
       .mockResolvedValueOnce({ ok: true, message: "Added Desk lamp." });
     renderEditor();
     fireEvent.change(field("Product name"), { target: { value: "Desk lamp" } });
+    fireEvent.change(field("Product code"), {
+      target: { value: "KK-LAMP-01" },
+    });
     fireEvent.change(field("Price"), { target: { value: "900" } });
     const input =
       document.querySelector<HTMLInputElement>('input[type="file"]')!;
@@ -204,6 +221,9 @@ describe("ProductEditor", () => {
     });
     renderEditor();
     fireEvent.change(field("Product name"), { target: { value: "Desk lamp" } });
+    fireEvent.change(field("Product code"), {
+      target: { value: "KK-LAMP-01" },
+    });
     fireEvent.change(field("Price"), { target: { value: "900" } });
     const input =
       document.querySelector<HTMLInputElement>('input[type="file"]')!;
@@ -219,6 +239,42 @@ describe("ProductEditor", () => {
     fireEvent.click(screen.getByRole("button", { name: "Discard changes" }));
     expect(discardUploadAction).toHaveBeenCalledWith(PHOTO.url);
     expect(onClose).toHaveBeenCalled();
+  });
+
+  it("fills the code, unit and specs when editing", () => {
+    renderEditor(adminProduct({ uom: "pair" }));
+    expect(field("Product code")).toHaveValue("KK-CHAIR-01");
+    expect(field("Unit of measure")).toHaveValue("pair");
+    expect(field("Specifications")).toHaveValue(
+      "Seat height 44–54 cm\n3D armrests",
+    );
+    expect(field("Specifications")).toHaveAccessibleDescription(
+      "One spec per line, including dimensions. Printed under the product code on quotations and delivery receipts.",
+    );
+  });
+
+  it("saves without a product code", async () => {
+    renderEditor();
+    expect(field("Product code")).not.toBeRequired();
+    fireEvent.change(field("Product name"), { target: { value: "Desk lamp" } });
+    fireEvent.change(field("Price"), { target: { value: "900" } });
+    await submit("Add product");
+    expect(saveAction).toHaveBeenCalledWith(
+      expect.objectContaining({ name: "Desk lamp", code: "" }),
+    );
+  });
+
+  it("shows a taken code from the server on the code field", async () => {
+    saveAction.mockResolvedValue({
+      ok: false,
+      fieldErrors: { code: "Another product already uses this code." },
+    });
+    renderEditor(adminProduct());
+    await submit("Save changes");
+    expect(field("Product code")).toHaveAccessibleDescription(
+      "Another product already uses this code.",
+    );
+    expect(field("Product code")).toHaveFocus();
   });
 
   it("shows the server's field errors", async () => {

@@ -4,12 +4,18 @@ const nextConfig: NextConfig = {
   cacheComponents: true,
   partialPrefetching: true,
   images: {
-    // Product photos, uploaded to Vercel Blob under products/ (lib/domain/productImages.ts).
+    // Product photos and the store logo, uploaded to Vercel Blob under products/ and
+    // branding/ (lib/domain/productImages.ts).
     remotePatterns: [
       {
         protocol: "https",
         hostname: "*.public.blob.vercel-storage.com",
         pathname: "/products/**",
+      },
+      {
+        protocol: "https",
+        hostname: "*.public.blob.vercel-storage.com",
+        pathname: "/branding/**",
       },
     ],
   },

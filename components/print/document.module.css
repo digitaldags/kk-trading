@@ -1,0 +1,268 @@
+/* The printed quotation and delivery receipt (Figma 78:1190, 78:1307), laid out like
+   the owner's sample documents. Sizes come from the .t-print-* classes. */
+
+.document {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.document h1,
+.document h2,
+.document dl,
+.document dd {
+  margin: 0;
+}
+
+/* A receipt fills one A4 page, so its notice and signatures sit at the bottom of a
+   one-page receipt. Screen: A4 less the sheet's 14mm padding. */
+.receipt {
+  min-height: calc(297mm - 28mm);
+}
+
+/* Letterhead */
+
+.letterhead {
+  display: grid;
+  gap: 8px;
+}
+
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.logo {
+  display: block;
+  width: auto;
+  max-width: 160px;
+  height: auto;
+  max-height: 48px;
+}
+
+.slogan {
+  font-style: italic;
+}
+
+.title {
+  display: flex;
+  align-items: baseline;
+  gap: 12px;
+}
+
+.draft {
+  color: var(--on-surface-var);
+  letter-spacing: 1px;
+}
+
+/* Meta grid: Date | No. | Delivery Term, then pairs that span the right two columns. */
+
+.meta {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 0.42fr) minmax(0, 0.58fr);
+  gap: 8px 16px;
+}
+
+.field {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.wide {
+  grid-column: span 2;
+}
+
+.block {
+  display: block;
+}
+
+/* Items */
+
+.items {
+  width: 100%;
+  border-collapse: collapse;
+  font-variant-numeric: tabular-nums;
+}
+
+/* Repeats on each printed page. */
+.items thead {
+  display: table-header-group;
+}
+
+.items th {
+  padding: 4px 8px;
+  text-align: left;
+  font-weight: inherit;
+}
+
+.items th:nth-child(2) {
+  width: 56px;
+}
+
+.items th:nth-child(3) {
+  width: 48px;
+}
+
+.items th:nth-child(n + 4) {
+  width: 88px;
+}
+
+.row {
+  break-inside: avoid;
+}
+
+/* The sample's shading, on every other row. */
+.row:nth-child(odd) {
+  background: var(--surface-c);
+}
+
+.row td {
+  padding: 4px 8px;
+  vertical-align: middle;
+}
+
+.item {
+  display: grid;
+  grid-template-columns: 80px minmax(0, 1fr);
+  align-items: center;
+  gap: 16px;
+}
+
+.photo {
+  display: grid;
+  place-items: center;
+  width: 80px;
+  height: 64px;
+  color: var(--on-surface-var);
+}
+
+.photo img {
+  display: block;
+  max-width: 100%;
+  max-height: 100%;
+  object-fit: contain;
+}
+
+.items .center {
+  text-align: center;
+}
+
+.items .amount {
+  text-align: right;
+  white-space: nowrap;
+}
+
+/* Remarks and totals */
+
+.closing {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 200px;
+  gap: 24px;
+  break-inside: avoid;
+}
+
+.remarksHeading {
+  margin-bottom: 12px;
+  font-style: italic;
+}
+
+.leadTime {
+  display: grid;
+  grid-template-columns: 96px minmax(0, 1fr);
+}
+
+.totals {
+  display: grid;
+  align-content: end;
+  gap: 2px;
+}
+
+.totalRow {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.grand {
+  margin-top: 8px;
+  font-variant-numeric: tabular-nums;
+}
+
+.acknowledgement {
+  display: grid;
+  gap: 8px;
+  break-inside: avoid;
+}
+
+.centered {
+  text-align: center;
+}
+
+.preLine {
+  white-space: pre-line;
+}
+
+/* Signatures */
+
+.signatures {
+  display: grid;
+  gap: 8px;
+  width: min(100%, 140mm);
+  margin-top: 24px;
+  break-inside: avoid;
+}
+
+.signatures .signature {
+  grid-template-columns: 60mm minmax(0, 1fr);
+}
+
+.signature {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: end;
+  gap: 12px;
+}
+
+.line {
+  position: relative;
+  min-height: 18px;
+  border-bottom: 1px solid var(--on-surface);
+}
+
+.caption {
+  position: absolute;
+  top: 100%;
+  right: 0;
+  left: 0;
+  padding-top: 2px;
+  text-align: center;
+}
+
+/* The receipt's notice and signatures, pushed to the bottom of the page. */
+.receiptEnd {
+  display: grid;
+  gap: 24px;
+  margin-top: auto;
+  break-inside: avoid;
+}
+
+.notice {
+  padding: 8px 12px;
+  border: 1px solid var(--on-surface);
+  text-align: center;
+}
+
+.receiptSignatures {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 32px 48px;
+  padding-bottom: 16px;
+}
+
+@media print {
+  /* A4 less the 12mm @page margins. */
+  .receipt {
+    min-height: 273mm;
+  }
+}

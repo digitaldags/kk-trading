@@ -1,16 +1,20 @@
 import { getDb } from "@/lib/db/client";
 import { createAdminUserRepo } from "./adminUserRepo";
 import { createCategoryRepo } from "./categoryRepo";
+import { createDeliveryReceiptRepo } from "./deliveryReceiptRepo";
 import { createLoginAttemptRepo } from "./loginAttemptRepo";
 import { createProductRepo } from "./productRepo";
 import { createPublishRepo } from "./publishRepo";
+import { createQuotationRepo } from "./quotationRepo";
 import { createSettingsRepo } from "./settingsRepo";
 import type {
   AdminUserRepo,
   CategoryRepo,
+  DeliveryReceiptRepo,
   LoginAttemptRepo,
   ProductRepo,
   PublishRepo,
+  QuotationRepo,
   SettingsRepo,
 } from "./types";
 
@@ -38,3 +42,9 @@ export const loginAttemptRepo = lazy<LoginAttemptRepo>(() =>
   createLoginAttemptRepo(getDb()),
 );
 export const publishRepo = lazy<PublishRepo>(() => createPublishRepo(getDb()));
+export const quotationRepo = lazy<QuotationRepo>(() =>
+  createQuotationRepo(getDb()),
+);
+export const deliveryReceiptRepo = lazy<DeliveryReceiptRepo>(() =>
+  createDeliveryReceiptRepo(getDb()),
+);

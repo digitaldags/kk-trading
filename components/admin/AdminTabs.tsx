@@ -10,7 +10,17 @@ export const ADMIN_SECTIONS = [
   { href: "/admin", icon: "inventory_2", label: "Products" },
   { href: "/admin/categories", icon: "category", label: "Categories" },
   { href: "/admin/settings", icon: "storefront", label: "Store details" },
+  { href: "/admin/documents", icon: "description", label: "Documents" },
 ] as const;
+
+/**
+ * Whether `pathname` is in a section: Products (`/admin`) only on its own path, the
+ * others also below it (`/admin/documents/<id>` is in Documents).
+ */
+export function isCurrentSection(pathname: string, href: string): boolean {
+  if (href === "/admin") return pathname === href;
+  return pathname === href || pathname.startsWith(`${href}/`);
+}
 
 /**
  * The admin sections as tabs (Figma 12:301). Each is its own page, so they're links
@@ -21,7 +31,7 @@ export function AdminTabs() {
   return (
     <nav aria-label="Admin sections" className={styles.tabs}>
       {ADMIN_SECTIONS.map((section) => {
-        const current = pathname === section.href;
+        const current = isCurrentSection(pathname, section.href);
         return (
           <Link
             key={section.href}

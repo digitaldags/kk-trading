@@ -1,9 +1,16 @@
+import type { QuotationStatus } from "@/lib/domain/documents";
 import type {
   AdminUser,
   Category,
   CategoryWithCount,
+  DeliveryReceipt,
+  DeliveryReceiptWithItems,
   Product,
   ProductWithCategory,
+  Quotation,
+  QuotationItem,
+  QuotationSummary,
+  QuotationWithItems,
   StoreSettings,
 } from "@/lib/domain/types";
 
@@ -41,6 +48,9 @@ export type NewProduct = Pick<
   | "slug"
   | "categoryId"
   | "name"
+  | "code"
+  | "uom"
+  | "specs"
   | "priceCentavos"
   | "stockStatus"
   | "keySpec"
@@ -59,14 +69,21 @@ export interface ProductRepo {
   listWithCategory(filter?: ProductFilter): Promise<ProductWithCategory[]>;
   findById(id: string): Promise<Product | null>;
   findBySlug(slug: string): Promise<ProductWithCategory | null>;
+  /** Case-insensitive. Pass a filled-in code: many products can have an empty one. */
+  findByCode(code: string): Promise<Product | null>;
   slugsStartingWith(prefix: string): Promise<string[]>;
   /** -1 when there are no products. */
   maxSortOrder(): Promise<number>;
+  /** Throws `ProductCodeTakenError` when the unique code index refuses it. */
   insert(values: NewProduct): Promise<Product>;
+  /** Throws `ProductCodeTakenError` when the unique code index refuses it. */
   update(id: string, patch: ProductPatch): Promise<Product | null>;
   /** Returns the deleted product, or null if it didn't exist. */
   delete(id: string): Promise<Product | null>;
-  /** Whether any product shows this photo, in the draft or in the published store. */
+  /**
+   * Whether anything still shows this photo: a product in the draft or the published
+   * store, or a quotation line (ticket 18).
+   */
   isImageInUse(url: string): Promise<boolean>;
 }
 
@@ -101,6 +118,8 @@ export interface SettingsRepo {
   get(): Promise<StoreSettings | null>;
   /** Writes the single settings row, creating it if needed. */
   update(values: SettingsValues): Promise<StoreSettings>;
+  /** Whether the store shows this logo, in the draft or in the published store. */
+  isLogoInUse(url: string): Promise<boolean>;
 }
 
 export interface AdminUserRepo {
@@ -119,4 +138,90 @@ export interface LoginAttemptRepo {
   record(attempt: LoginAttempt): Promise<void>;
   countFailuresByEmail(email: string, since: Date): Promise<number>;
   countFailuresByIp(ip: string, since: Date): Promise<number>;
+}
+
+/** A write that can be refused for a known reason, instead of throwing. */
+export type RepoResult<T, R extends string> =
+  { ok: true; data: T } | { ok: false; reason: R };
+
+/** A quotation's header as the admin writes it. Ids, timestamps and `*At` are the repo's. */
+export type NewQuotation = Omit<
+  Quotation,
+  "id" | "completedAt" | "declinedAt" | "createdAt" | "updatedAt"
+>;
+
+/** A quotation line to write. Its position is its index in the list. */
+export type NewQuotationItem = Omit<
+  QuotationItem,
+  "id" | "quotationId" | "position"
+>;
+
+export type QuotationFilter = { status?: QuotationStatus; q?: string };
+
+export interface QuotationRepo {
+  /**
+   * Newest `quoteDate` first, then newest created. `q` matches the number or the
+   * customer name, ignoring case. Totals and the delivery state are computed in SQL.
+   */
+  list(filter?: QuotationFilter): Promise<QuotationSummary[]>;
+  /** With its items in page order. */
+  findById(id: string): Promise<QuotationWithItems | null>;
+  /** Case-insensitive. */
+  findByNumber(number: string): Promise<Quotation | null>;
+  insert(
+    header: NewQuotation,
+    items: NewQuotationItem[],
+  ): Promise<RepoResult<QuotationWithItems, "duplicate_number">>;
+  /**
+   * Rewrites the header and all the items, in one transaction. `null` data when the
+   * quotation doesn't exist. Fails once a receipt delivers its lines (the foreign key
+   * restricts), so only drafts are replaced.
+   */
+  replace(
+    id: string,
+    header: NewQuotation,
+    items: NewQuotationItem[],
+  ): Promise<RepoResult<QuotationWithItems | null, "duplicate_number">>;
+  /**
+   * Moves the status from `from` to `to`, stamping `completedAt` / `declinedAt`. Null
+   * when the quotation is gone or its status was no longer `from`.
+   */
+  setStatus(
+    id: string,
+    from: QuotationStatus,
+    to: QuotationStatus,
+  ): Promise<Quotation | null>;
+  /** Its items go by cascade. Fails if it has receipts (restrict). */
+  delete(id: string): Promise<boolean>;
+}
+
+export type NewDeliveryReceipt = Omit<DeliveryReceipt, "id" | "createdAt">;
+
+export type NewDeliveryReceiptItem = {
+  quotationItemId: string;
+  quantity: number;
+};
+
+export type DeliveryReceiptRefusal =
+  "duplicate_number" | "over_delivery" | "not_completed";
+
+export interface DeliveryReceiptRepo {
+  /** Oldest first, with their items. */
+  listForQuotation(quotationId: string): Promise<DeliveryReceiptWithItems[]>;
+  /** Quantity delivered so far per quotation line, by every receipt. Lines with none are left out. */
+  deliveredByLine(quotationId: string): Promise<Map<string, number>>;
+  /** With its items, each joined to the quotation line it prints. */
+  findById(id: string): Promise<DeliveryReceiptWithItems | null>;
+  /** Case-insensitive. */
+  findByNumber(number: string): Promise<DeliveryReceipt | null>;
+  /**
+   * Writes the receipt and its items in one transaction. The database refuses
+   * over-delivery and a quotation that isn't completed; nothing is written then.
+   */
+  insert(
+    header: NewDeliveryReceipt,
+    items: NewDeliveryReceiptItem[],
+  ): Promise<RepoResult<DeliveryReceiptWithItems, DeliveryReceiptRefusal>>;
+  /** Its items go by cascade, so their quantities count as undelivered again. */
+  delete(id: string): Promise<boolean>;
 }

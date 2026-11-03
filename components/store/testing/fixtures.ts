@@ -10,9 +10,15 @@ const at = new Date("2026-01-01T00:00:00Z");
 
 export const SETTINGS: Omit<StoreSettings, "updatedAt"> = {
   name: "KK Trading",
+  slogan: "FOUNDATION TO FURNISH",
+  logoUrl: null,
+  logoPathname: null,
+  logoWidth: null,
+  logoHeight: null,
   headline: "Equipment for the desk and the gym",
   tagline: "Office furniture and fitness gear.",
   phone: "0917 000 0000",
+  phone2: "",
   email: "hello@example.com",
   address: "",
 };
@@ -50,6 +56,9 @@ function product(
     slug: id,
     categoryId: category.id,
     name,
+    code: id.toUpperCase(),
+    uom: "pcs",
+    specs: "",
     priceCentavos: 895000,
     stockStatus: "in_stock",
     keySpec: "",

@@ -1,6 +1,6 @@
 import { execFileSync } from "node:child_process";
 import { expect, test, type Browser, type Page } from "@playwright/test";
-import { publish } from "./helpers";
+import { pngFile, publish } from "./helpers";
 
 // Store details and the password change against the Neon dev branch. The store name gets
 // " E2E" appended and is put back; the password is changed, then reset to the test
@@ -113,6 +113,79 @@ test("a new store name shows in the app bar, hero and footer on the next load", 
   await setStoreName(page, original);
   await page.goto("/");
   await expect(page.locator("footer")).not.toContainText(renamed);
+});
+
+// Ticket 40. Never touches a logo the owner uploaded: skips when the store has one.
+test("a published logo shows in the store's app bar, and removing it brings back the tile", async ({
+  page,
+}) => {
+  test.skip(
+    !process.env.BLOB_READ_WRITE_TOKEN,
+    "Needs BLOB_READ_WRITE_TOKEN for the Vercel Blob store.",
+  );
+  await signIn(page);
+  const form = detailsForm(page);
+  const removeLogo = form.getByRole("button", { name: "Remove logo" });
+  test.skip(
+    await removeLogo.isVisible(),
+    "The store already has a logo; this test won't remove it.",
+  );
+  const storeName = await form.getByLabel("Store name").inputValue();
+  const brand = page.getByRole("link", { name: `${storeName}, back to top` });
+  const brandLogo = brand.locator("img");
+  const save = async () => {
+    await form.getByRole("button", { name: "Save details" }).click();
+    await expect(snackbar(page, "Store details saved.")).toBeVisible();
+  };
+
+  // A wide 4:1 logo: 160 × 40 in the app bar.
+  await page
+    .getByTestId("logo-file")
+    .setInputFiles(
+      await pngFile(page, { width: 400, height: 100, name: "logo.png" }),
+    );
+  await expect(form.getByRole("img", { name: "Store logo" })).toBeVisible();
+  await save();
+
+  try {
+    // Saved, not published: the store doesn't show it yet.
+    await page.goto("/");
+    await expect(brand).toBeVisible();
+    await expect(brandLogo).toHaveCount(0);
+
+    await page.goto("/admin/settings");
+    await publish(page);
+    await page.goto("/");
+    await expect(brandLogo).toBeVisible();
+    await expect(brandLogo).toHaveAttribute("alt", "");
+    await expect(brandLogo).toHaveAttribute(
+      "src",
+      /public.blob.vercel-storage.com/,
+    );
+    const box = (await brandLogo.boundingBox())!;
+    expect(Math.round(box.width)).toBe(160);
+    expect(Math.round(box.height)).toBe(40);
+    await expect(brand).toContainText(storeName);
+
+    // A product page shows it too.
+    const productHref = await page
+      .locator('a[href^="/products/"]')
+      .first()
+      .getAttribute("href");
+    await page.goto(productHref!);
+    await expect(
+      page.getByRole("link", { name: `${storeName}, home` }).locator("img"),
+    ).toBeVisible();
+  } finally {
+    await page.goto("/admin/settings");
+    await removeLogo.click();
+    await save();
+    await publish(page);
+  }
+
+  await page.goto("/");
+  await expect(brand).toBeVisible();
+  await expect(brandLogo).toHaveCount(0);
 });
 
 test("an invalid email is refused before saving", async ({ page }) => {
