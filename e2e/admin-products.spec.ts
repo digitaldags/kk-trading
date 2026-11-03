@@ -1,6 +1,6 @@
 import { execFileSync } from "node:child_process";
 import { expect, test, type Page } from "@playwright/test";
-import { codeFor, publish } from "./helpers";
+import { codeFor, pngFile, publish } from "./helpers";
 
 // The products admin against the Neon dev branch (and the Blob store in .env.local for
 // the photo test). Each run adds its own products (named with a timestamp) and deletes
@@ -19,24 +19,6 @@ test.describe.configure({ mode: "serial" });
 const RUN = Date.now();
 const NAME = `E2E product ${RUN}`;
 const RENAMED = `${NAME} v2`;
-
-/** A small PNG drawn by the browser, so the upload has a real image to resize. */
-async function pngFile(page: Page) {
-  const dataUrl = await page.evaluate(() => {
-    const canvas = document.createElement("canvas");
-    canvas.width = 40;
-    canvas.height = 30;
-    const context = canvas.getContext("2d")!;
-    context.fillStyle = "teal";
-    context.fillRect(0, 0, 40, 30);
-    return canvas.toDataURL("image/png");
-  });
-  return {
-    name: "photo.png",
-    mimeType: "image/png",
-    buffer: Buffer.from(dataUrl.split(",")[1]!, "base64"),
-  };
-}
 
 async function signIn(page: Page) {
   await page.goto("/admin/login?next=%2Fadmin");

@@ -53,6 +53,9 @@ type SettingsRow = {
   slogan: string;
   logo_url: string | null;
   logo_pathname: string | null;
+  // Missing from snapshots taken before 0005_logo_size added them.
+  logo_width?: number | null;
+  logo_height?: number | null;
   headline: string;
   tagline: string;
   phone: string;
@@ -142,6 +145,8 @@ export function fromSnapshot(
     slogan: s.slogan,
     logoUrl: s.logo_url,
     logoPathname: s.logo_pathname,
+    logoWidth: s.logo_width ?? null,
+    logoHeight: s.logo_height ?? null,
     headline: s.headline,
     tagline: s.tagline,
     phone: s.phone,

@@ -75,6 +75,7 @@ export default async function ProductPage({
         storeName={settings.name}
         categories={categories}
         onStorefront={false}
+        logo={settings}
       />
       <main className={styles.main}>
         <div className={styles.content}>

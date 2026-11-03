@@ -30,6 +30,30 @@ export async function publish(page: Page) {
   await expect(page.getByText("All changes live")).toBeVisible();
 }
 
+/** A PNG drawn by the browser, for the photo and logo uploads. */
+export async function pngFile(
+  page: Page,
+  { width = 40, height = 30, name = "photo.png", color = "teal" } = {},
+) {
+  const dataUrl = await page.evaluate(
+    ({ width, height, color }) => {
+      const canvas = document.createElement("canvas");
+      canvas.width = width;
+      canvas.height = height;
+      const context = canvas.getContext("2d")!;
+      context.fillStyle = color;
+      context.fillRect(0, 0, width, height);
+      return canvas.toDataURL("image/png");
+    },
+    { width, height, color },
+  );
+  return {
+    name,
+    mimeType: "image/png",
+    buffer: Buffer.from(dataUrl.split(",")[1]!, "base64"),
+  };
+}
+
 /** Runs a script under scripts/ with tsx, as the admin specs do, and returns its output. */
 export function runScript(script: string, ...args: string[]): string {
   return execFileSync(

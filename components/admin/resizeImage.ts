@@ -20,6 +20,25 @@ export function fitWithin(width: number, height: number, max: number) {
   };
 }
 
+/**
+ * An image's size in pixels, read in the browser. The store logo keeps its file as is,
+ * but its size is saved so the storefront app bar can reserve its box (ticket 40).
+ */
+export async function readImageSize(
+  file: File,
+): Promise<{ width: number; height: number }> {
+  let bitmap: ImageBitmap;
+  try {
+    bitmap = await createImageBitmap(file);
+  } catch {
+    throw new ImageFileError(UNREADABLE_IMAGE);
+  }
+  const { width, height } = bitmap;
+  bitmap.close();
+  if (!width || !height) throw new ImageFileError(UNREADABLE_IMAGE);
+  return { width, height };
+}
+
 export async function resizeImage(file: File): Promise<Blob> {
   if (!file.type.startsWith("image/")) throw new ImageFileError(NOT_AN_IMAGE);
 

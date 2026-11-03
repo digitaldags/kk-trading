@@ -42,6 +42,8 @@ const SETTINGS: StoreSettings = {
   slogan: "",
   logoUrl: null,
   logoPathname: null,
+  logoWidth: null,
+  logoHeight: null,
   phone2: "",
   headline: "Equipment for the desk and the gym",
   tagline: "Office furniture and fitness gear.",
@@ -118,6 +120,22 @@ describe("storeJsonLd", () => {
     );
     expect(data).not.toHaveProperty("telephone");
     expect(data).not.toHaveProperty("address");
+  });
+
+  it("names the published logo, and leaves logo out without one", () => {
+    const page = {
+      url: "https://kktrading.ph/",
+      image: "https://kktrading.ph/og",
+    };
+    const logoUrl =
+      "https://store.public.blob.vercel-storage.com/branding/kk.png";
+    expect(
+      storeJsonLd(
+        { ...SETTINGS, logoUrl, logoWidth: 400, logoHeight: 100 },
+        page,
+      ),
+    ).toMatchObject({ logo: logoUrl, image: page.image });
+    expect(storeJsonLd(SETTINGS, page)).not.toHaveProperty("logo");
   });
 });
 

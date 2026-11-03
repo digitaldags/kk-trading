@@ -107,6 +107,8 @@ describe("storeSettingsInputSchema: slogan, second phone and logo", () => {
     const logo = {
       url: "https://store.public.blob.vercel-storage.com/branding/logo.png",
       pathname: "branding/logo.png",
+      width: 400,
+      height: 100,
     };
     expect(storeSettingsInputSchema.parse({ ...settings, logo }).logo).toEqual(
       logo,
@@ -117,9 +119,28 @@ describe("storeSettingsInputSchema: slogan, second phone and logo", () => {
     expect(
       storeSettingsInputSchema.safeParse({
         ...settings,
-        logo: { url: "not a url", pathname: "x" },
+        logo: { ...logo, url: "not a url" },
       }).success,
     ).toBe(false);
+  });
+
+  it("needs the logo's size in whole pixels, 1 to 20,000 (ticket 40)", () => {
+    const logo = {
+      url: "https://store.public.blob.vercel-storage.com/branding/logo.png",
+      pathname: "branding/logo.png",
+      width: 400,
+      height: 100,
+    };
+    const refused = (overrides: object) =>
+      !storeSettingsInputSchema.safeParse({
+        ...settings,
+        logo: { ...logo, ...overrides },
+      }).success;
+    expect(refused({ width: undefined })).toBe(true);
+    expect(refused({ height: 0 })).toBe(true);
+    expect(refused({ width: 400.5 })).toBe(true);
+    expect(refused({ width: 20_001 })).toBe(true);
+    expect(refused({ width: 1, height: 20_000 })).toBe(false);
   });
 });
 

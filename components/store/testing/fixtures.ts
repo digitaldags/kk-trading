@@ -13,6 +13,8 @@ export const SETTINGS: Omit<StoreSettings, "updatedAt"> = {
   slogan: "FOUNDATION TO FURNISH",
   logoUrl: null,
   logoPathname: null,
+  logoWidth: null,
+  logoHeight: null,
   headline: "Equipment for the desk and the gym",
   tagline: "Office furniture and fitness gear.",
   phone: "0917 000 0000",

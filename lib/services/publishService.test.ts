@@ -117,6 +117,8 @@ describe("the store logo while there's a draft", () => {
       ...SETTINGS,
       logoUrl: name && logo(name),
       logoPathname: name && `branding/${name}.png`,
+      logoWidth: name ? 400 : null,
+      logoHeight: name ? 100 : null,
     });
 
   it("deletes the previously published logo after a publish, once nothing uses it", async () => {

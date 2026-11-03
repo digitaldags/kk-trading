@@ -10,6 +10,8 @@ const SETTINGS = {
   slogan: "",
   logoUrl: null,
   logoPathname: null,
+  logoWidth: null,
+  logoHeight: null,
   phone2: "",
   headline: "Equipment for the desk and the gym",
   tagline: "",

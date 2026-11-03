@@ -12,7 +12,15 @@ import { Hero } from "./Hero";
 export type StorefrontProps = {
   settings: Pick<
     StoreSettings,
-    "name" | "headline" | "tagline" | "phone" | "email" | "address"
+    | "name"
+    | "headline"
+    | "tagline"
+    | "phone"
+    | "email"
+    | "address"
+    | "logoUrl"
+    | "logoWidth"
+    | "logoHeight"
   >;
   /** In storefront order. A category's position picks its tone. */
   categories: CategoryWithCount[];
@@ -34,7 +42,11 @@ export function Storefront({
 
   return (
     <>
-      <AppBar storeName={settings.name} categories={categories} />
+      <AppBar
+        storeName={settings.name}
+        categories={categories}
+        logo={settings}
+      />
       <main>
         <Hero
           settings={settings}

@@ -52,6 +52,9 @@ export type StoreSettings = {
   /** The logo in Blob under `branding/`, or null. */
   logoUrl: string | null;
   logoPathname: string | null;
+  /** The logo's size in pixels, read at upload. Null with no logo, or one saved before ticket 40. */
+  logoWidth: number | null;
+  logoHeight: number | null;
   headline: string;
   tagline: string;
   phone: string;

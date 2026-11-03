@@ -37,6 +37,7 @@ import type {
   StoreDetailsField,
 } from "./actionTypes";
 import { UPLOAD_URL } from "./ProductEditor";
+import { ImageFileError, readImageSize, UNREADABLE_IMAGE } from "./resizeImage";
 import styles from "./SettingsAdmin.module.css";
 
 export const LOGO_TYPE_ERROR = "Choose a PNG, JPEG or WebP image.";
@@ -102,7 +103,18 @@ const DETAIL_FIELDS = [
 type TextDetail = Exclude<StoreDetailsField, "logo">;
 type Details = Record<TextDetail, string>;
 
-/** The logo as the form shows it. `uploaded` is set once a new file is in Blob. */
+/** A logo as the save sends it: the Blob file and its size in pixels. */
+type LogoInput = {
+  url: string;
+  pathname: string;
+  width: number;
+  height: number;
+};
+
+/**
+ * The logo as the form shows it. A new one carries its size, read when it's picked;
+ * `uploaded` is set once the file is in Blob.
+ */
 type Logo =
   | { kind: "current"; url: string }
   | { kind: "none" }
@@ -110,7 +122,9 @@ type Logo =
       kind: "new";
       file: File;
       previewUrl: string;
-      uploaded?: { url: string; pathname: string };
+      width: number;
+      height: number;
+      uploaded?: LogoInput;
     };
 
 /** Copy for a file the logo field can't take, or null when it's fine. */
@@ -157,6 +171,8 @@ function StoreDetailsForm({
   // A logo in Blob that the settings row doesn't use yet. Deleted if the page closes first.
   const unsavedUploadRef = useRef<string | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
+  // Counts picks, so a slow size read can't replace a file picked after it.
+  const pickRef = useRef(0);
 
   const previewUrl = logo.kind === "new" ? logo.previewUrl : null;
   useEffect(() => {
@@ -178,17 +194,35 @@ function StoreDetailsForm({
 
   const clearLogoError = () => setErrors(({ logo: _, ...rest }) => rest);
 
-  function handleLogoFile(event: ChangeEvent<HTMLInputElement>) {
+  async function handleLogoFile(event: ChangeEvent<HTMLInputElement>) {
     const file = event.target.files?.[0];
     // Let the same file be picked again after Remove.
     event.target.value = "";
     if (!file) return;
+    const pick = ++pickRef.current;
     const problem = logoFileError(file);
     if (problem) {
       setErrors((e) => ({ ...e, logo: problem }));
       return;
     }
-    setLogo({ kind: "new", file, previewUrl: URL.createObjectURL(file) });
+    // The size goes with the logo, so the storefront reserves its box (ticket 40).
+    let size: { width: number; height: number };
+    try {
+      size = await readImageSize(file);
+    } catch (error) {
+      if (pick !== pickRef.current) return;
+      const message =
+        error instanceof ImageFileError ? error.message : UNREADABLE_IMAGE;
+      setErrors((e) => ({ ...e, logo: message }));
+      return;
+    }
+    if (pick !== pickRef.current) return;
+    setLogo({
+      kind: "new",
+      file,
+      previewUrl: URL.createObjectURL(file),
+      ...size,
+    });
     clearLogoError();
   }
 
@@ -214,7 +248,7 @@ function StoreDetailsForm({
     setErrors({});
     setFormError(undefined);
     startSaving(async () => {
-      let logoInput: { url: string; pathname: string } | null | undefined;
+      let logoInput: LogoInput | null | undefined;
       if (logo.kind === "new") {
         logoInput = logo.uploaded;
         if (!logoInput) {
@@ -232,7 +266,12 @@ function StoreDetailsForm({
                 contentType: logo.file.type,
               },
             );
-            logoInput = { url: blob.url, pathname: blob.pathname };
+            logoInput = {
+              url: blob.url,
+              pathname: blob.pathname,
+              width: logo.width,
+              height: logo.height,
+            };
             unsavedUploadRef.current = blob.url;
             // Kept, so trying again after a failed save doesn't upload a second copy.
             setLogo({ ...logo, uploaded: logoInput });
@@ -330,6 +369,8 @@ function StoreDetailsForm({
               <Button
                 variant="text"
                 onClick={() => {
+                  // A pick still reading its size doesn't come back after this.
+                  pickRef.current += 1;
                   setLogo({ kind: "none" });
                   clearLogoError();
                 }}
@@ -340,8 +381,9 @@ function StoreDetailsForm({
           </div>
         </div>
         <p id={`${id}-logo-hint`} className={cx(styles.hint, "t-label-small")}>
-          PNG with a transparent background works best. Printed at the top left
-          of quotations and delivery receipts.
+          PNG with a transparent background works best. Shown in the store
+          header, and printed at the top left of quotations and delivery
+          receipts.
         </p>
         {errors.logo && (
           <p

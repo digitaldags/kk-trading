@@ -415,6 +415,9 @@ describe("the documents migration (0004) on existing data", () => {
   it("adds the document tables to a store migrated to 0003", async () => {
     const old = await createTestDbAt("0003_optional_product_code");
     try {
+      // The seed writes today's store_settings columns. 0005 only adds the logo size
+      // there (and to the snapshot), independent of 0004, so it can run first.
+      await runMigrationSql(old.client, "0005_logo_size");
       await seed(old.db, TEST_ADMIN);
       await runMigrationSql(old.client, "0004_documents");
       const [product] = await createProductRepo(old.db).listWithCategory();

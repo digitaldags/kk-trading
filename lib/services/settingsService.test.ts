@@ -72,9 +72,11 @@ describe("settingsService", () => {
 });
 
 describe("settingsService logo", () => {
-  const logo = (name: string) => ({
+  const logo = (name: string, width = 400, height = 100) => ({
     url: `https://store.public.blob.vercel-storage.com/branding/${name}.png`,
     pathname: `branding/${name}.png`,
+    width,
+    height,
   });
 
   it("sets a logo, and keeps it when the input leaves it out", async () => {
@@ -83,6 +85,8 @@ describe("settingsService logo", () => {
     expect(kept.ok && kept.data).toMatchObject({
       logoUrl: logo("a").url,
       logoPathname: logo("a").pathname,
+      logoWidth: 400,
+      logoHeight: 100,
     });
     expect(store.imageStore.deleted).toEqual([]);
   });
@@ -93,6 +97,8 @@ describe("settingsService logo", () => {
       logo: {
         url: "https://store.public.blob.vercel-storage.com/products/a.png",
         pathname: "products/a.png",
+        width: 400,
+        height: 100,
       },
     });
     expect(result).toEqual({
@@ -104,9 +110,28 @@ describe("settingsService logo", () => {
 
   it("deletes a replaced logo the published store doesn't show", async () => {
     await service.update({ ...input, logo: logo("a") });
-    await service.update({ ...input, logo: logo("b") });
-    expect((await service.get()).logoUrl).toBe(logo("b").url);
+    await service.update({ ...input, logo: logo("b", 512, 512) });
+    expect(await service.get()).toMatchObject({
+      logoUrl: logo("b").url,
+      logoWidth: 512,
+      logoHeight: 512,
+    });
     expect(store.imageStore.deleted).toEqual([logo("a").url]);
+  });
+
+  it("refuses a logo without a whole-pixel size", async () => {
+    const { width: _, ...noWidth } = logo("a");
+    const missing = await service.update({
+      ...input,
+      logo: noWidth as ReturnType<typeof logo>,
+    });
+    const fractional = await service.update({
+      ...input,
+      logo: logo("a", 400.5, 100),
+    });
+    expect(missing.ok).toBe(false);
+    expect(fractional.ok).toBe(false);
+    expect(await store.settingsRepo.get()).toBeNull();
   });
 
   it("keeps a replaced or removed logo while the published store shows it", async () => {
@@ -128,6 +153,8 @@ describe("settingsService logo", () => {
     expect(result.ok && result.data).toMatchObject({
       logoUrl: null,
       logoPathname: null,
+      logoWidth: null,
+      logoHeight: null,
     });
     expect(store.imageStore.deleted).toEqual([logo("a").url]);
   });

@@ -21,6 +21,7 @@ import {
   LOGO_UPLOAD_FAILED,
   SettingsAdmin,
 } from "./SettingsAdmin";
+import { UNREADABLE_IMAGE } from "./resizeImage";
 
 const upload = vi.fn();
 vi.mock("@vercel/blob/client", () => ({
@@ -34,6 +35,8 @@ const SETTINGS: StoreSettings = {
   slogan: "FOUNDATION TO FURNISH",
   logoUrl: null,
   logoPathname: null,
+  logoWidth: null,
+  logoHeight: null,
   phone2: "",
   headline: "Equipment for the desk and the gym",
   tagline: "Office furniture and fitness gear.",
@@ -164,10 +167,23 @@ describe("Store details › Logo", () => {
       within(details()).getByRole("button", { name: "Save details" }),
     );
 
+  // jsdom can't decode images: every picked file reads as 400 × 100.
+  const createImageBitmap = vi.fn(async () => ({
+    width: 400,
+    height: 100,
+    close: () => {},
+  }));
+
   beforeEach(() => {
     upload.mockReset();
     URL.createObjectURL = vi.fn(() => "blob:preview");
     URL.revokeObjectURL = vi.fn();
+    createImageBitmap.mockClear();
+    vi.stubGlobal("createImageBitmap", createImageBitmap);
+  });
+
+  afterEach(() => {
+    vi.unstubAllGlobals();
   });
 
   it("shows the hint and an Upload button without a logo", () => {
@@ -176,7 +192,7 @@ describe("Store details › Logo", () => {
       name: "Upload logo",
     });
     expect(button).toHaveAccessibleDescription(
-      "PNG with a transparent background works best. Printed at the top left of quotations and delivery receipts.",
+      "PNG with a transparent background works best. Shown in the store header, and printed at the top left of quotations and delivery receipts.",
     );
     expect(
       within(details()).queryByRole("button", { name: "Remove logo" }),
@@ -196,7 +212,9 @@ describe("Store details › Logo", () => {
     renderSettings({ saveDetailsAction });
     const file = new File(["png"], "logo.png", { type: "image/png" });
     await userEvent.upload(logoFile(), file);
-    expect(screen.getByRole("img", { name: "Store logo" })).toBeVisible();
+    expect(
+      await screen.findByRole("img", { name: "Store logo" }),
+    ).toBeVisible();
 
     await save();
     expect(upload).toHaveBeenCalledWith("branding/kk-trading-logo.png", file, {
@@ -206,9 +224,27 @@ describe("Store details › Logo", () => {
     });
     await save();
     expect(upload).toHaveBeenCalledTimes(1);
+    // With its size, so the storefront reserves its box (ticket 40).
     expect(saveDetailsAction).toHaveBeenLastCalledWith(
-      expect.objectContaining({ logo: LOGO }),
+      expect.objectContaining({ logo: { ...LOGO, width: 400, height: 100 } }),
     );
+  });
+
+  it("refuses an image it can't read, before uploading", async () => {
+    createImageBitmap.mockRejectedValueOnce(new Error("bad image"));
+    renderSettings();
+    await userEvent.upload(
+      logoFile(),
+      new File(["not a png"], "logo.png", { type: "image/png" }),
+    );
+    await waitFor(() =>
+      expect(
+        within(details()).getByRole("button", { name: "Upload logo" }),
+      ).toHaveAccessibleDescription(expect.stringContaining(UNREADABLE_IMAGE)),
+    );
+    expect(screen.queryByRole("img", { name: "Store logo" })).toBeNull();
+    await save();
+    expect(upload).not.toHaveBeenCalled();
   });
 
   it("refuses an SVG or other file before uploading", async () => {

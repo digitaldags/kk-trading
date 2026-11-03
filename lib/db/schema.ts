@@ -100,6 +100,10 @@ export const storeSettings = pgTable(
     // Vercel Blob URL and pathname, under branding/.
     logoUrl: text("logo_url"),
     logoPathname: text("logo_pathname"),
+    // The logo's size in pixels, read in the browser at upload (ticket 40), so the
+    // storefront app bar reserves its box. Null for no logo, or one saved before 0005.
+    logoWidth: integer("logo_width"),
+    logoHeight: integer("logo_height"),
     headline: text("headline").notNull(),
     tagline: text("tagline").notNull(),
     phone: text("phone").notNull(),
@@ -108,7 +112,15 @@ export const storeSettings = pgTable(
     address: text("address").notNull(),
     updatedAt: updatedAt(),
   },
-  (t) => [check("store_settings_single_row_check", sql`${t.id} = 1`)],
+  (t) => [
+    check("store_settings_single_row_check", sql`${t.id} = 1`),
+    check(
+      "store_settings_logo_size_check",
+      // Spelled out: a CHECK passes when it evaluates to NULL, so "> 0" alone would
+      // let a width through without a height.
+      sql`(${t.logoWidth} is null and ${t.logoHeight} is null) or (${t.logoWidth} is not null and ${t.logoHeight} is not null and ${t.logoWidth} > 0 and ${t.logoHeight} > 0)`,
+    ),
+  ],
 );
 
 // What the storefront shows: one JSON copy of categories, products and settings, made by

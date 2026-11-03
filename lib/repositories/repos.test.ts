@@ -477,6 +477,9 @@ describe("the document_fields migration (0002) on existing data", () => {
     `);
     await runMigrationSql(old.client, "0002_document_fields");
     await runMigrationSql(old.client, "0003_optional_product_code");
+    // The rest, so the repositories' selects find every column they name.
+    await runMigrationSql(old.client, "0004_documents");
+    await runMigrationSql(old.client, "0005_logo_size");
     return old;
   }
 
@@ -550,6 +553,95 @@ describe("the document_fields migration (0002) on existing data", () => {
       });
     } finally {
       await old.client.close();
+    }
+  });
+});
+
+describe("the logo_size migration (0005) on existing data", () => {
+  const LOGO = "https://x.public.blob.vercel-storage.com/branding/kk-logo.png";
+
+  // A store as it was before ticket 40: a logo saved and published, with no size.
+  async function storeBefore0005() {
+    const old = await createTestDbAt("0004_documents");
+    await old.client.exec(`
+      insert into store_settings (id, name, headline, tagline, phone, email, address,
+        logo_url, logo_pathname)
+      values (1, 'KK Trading', 'Equipment', '', '0917', 'hello@example.com', '',
+        '${LOGO}', 'branding/kk-logo.png');
+      insert into published_snapshot (id, data, published_at)
+      values (1, jsonb_build_object(
+        'categories', '[]'::jsonb,
+        'products', '[]'::jsonb,
+        'settings', (select to_jsonb(s) from store_settings s where s.id = 1)
+      ), now())
+      on conflict (id) do update set data = excluded.data;
+    `);
+    await runMigrationSql(old.client, "0005_logo_size");
+    return old;
+  }
+
+  it("keeps the store published, with the logo and no size", async () => {
+    const { db: migrated, client: migratedClient } = await storeBefore0005();
+    try {
+      const publish = createPublishRepo(migrated);
+      expect(await publish.hasUnpublishedChanges()).toBe(false);
+      expect((await publish.getPublished())?.settings).toMatchObject({
+        logoUrl: LOGO,
+        logoWidth: null,
+        logoHeight: null,
+      });
+      expect(await createSettingsRepo(migrated).get()).toMatchObject({
+        logoUrl: LOGO,
+        logoWidth: null,
+        logoHeight: null,
+      });
+    } finally {
+      await migratedClient.close();
+    }
+  });
+
+  it("lets Discard put back the published logo size", async () => {
+    const { db: migrated, client: migratedClient } = await storeBefore0005();
+    try {
+      const settings = createSettingsRepo(migrated);
+      const publish = createPublishRepo(migrated);
+      const { updatedAt: _, ...values } = (await settings.get())!;
+      await settings.update({ ...values, logoWidth: 400, logoHeight: 100 });
+      await publish.publish();
+      expect((await publish.getPublished())?.settings).toMatchObject({
+        logoWidth: 400,
+        logoHeight: 100,
+      });
+
+      await settings.update({
+        ...values,
+        logoUrl: null,
+        logoPathname: null,
+        logoWidth: null,
+        logoHeight: null,
+      });
+      expect(await publish.discard()).toBe(true);
+      expect(await settings.get()).toMatchObject({
+        logoUrl: LOGO,
+        logoWidth: 400,
+        logoHeight: 100,
+      });
+      expect(await publish.hasUnpublishedChanges()).toBe(false);
+    } finally {
+      await migratedClient.close();
+    }
+  });
+
+  it("refuses a width without a height", async () => {
+    const { client: migratedClient } = await storeBefore0005();
+    try {
+      await expect(
+        migratedClient.exec(
+          "update store_settings set logo_width = 400 where id = 1",
+        ),
+      ).rejects.toThrow(/store_settings_logo_size_check/);
+    } finally {
+      await migratedClient.close();
     }
   });
 });

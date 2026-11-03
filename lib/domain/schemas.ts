@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { CATEGORY_ICONS } from "./icons";
+import { MAX_LOGO_SIDE } from "./logo";
 import { parsePriceToCentavos } from "./price";
 import { STOCK_STATUSES } from "./stock";
 import { UOMS } from "./uom";
@@ -25,6 +26,23 @@ export const PRODUCT_CODE_TAKEN = "Another product already uses this code.";
 /** A Blob file the editor uploaded: leave out to keep the current one, `null` to remove it. */
 const blobFile = z
   .object({ url: z.url(), pathname: z.string().min(1) })
+  .nullable()
+  .optional();
+
+/** A whole number of pixels, as the browser reads an image's size. */
+const imageSide = z.number().int().min(1).max(MAX_LOGO_SIDE);
+
+/**
+ * The store logo: a Blob file plus its size, read in the browser at upload (ticket 40),
+ * so the storefront app bar can reserve its box before the image loads.
+ */
+const logoFile = z
+  .object({
+    url: z.url(),
+    pathname: z.string().min(1),
+    width: imageSide,
+    height: imageSide,
+  })
   .nullable()
   .optional();
 
@@ -96,7 +114,7 @@ export const storeSettingsInputSchema = z.object({
     .pipe(z.email("Enter an email address like name@example.com.")),
   address: text(200).default(""),
   /** Leave out to keep the current logo, `null` to remove it. */
-  logo: blobFile,
+  logo: logoFile,
 });
 
 export type StoreSettingsInput = z.input<typeof storeSettingsInputSchema>;

@@ -57,17 +57,22 @@ export function createSettingsService(deps: {
       }
 
       const existing = await deps.settings.get();
-      const saved = await deps.settings.update({
-        ...values,
-        logoUrl:
-          logo === undefined
-            ? (existing?.logoUrl ?? null)
-            : (logo?.url ?? null),
-        logoPathname:
-          logo === undefined
-            ? (existing?.logoPathname ?? null)
-            : (logo?.pathname ?? null),
-      });
+      // Left out: keep the current logo and its size. null: no logo.
+      const logoFields =
+        logo === undefined
+          ? {
+              logoUrl: existing?.logoUrl ?? null,
+              logoPathname: existing?.logoPathname ?? null,
+              logoWidth: existing?.logoWidth ?? null,
+              logoHeight: existing?.logoHeight ?? null,
+            }
+          : {
+              logoUrl: logo?.url ?? null,
+              logoPathname: logo?.pathname ?? null,
+              logoWidth: logo?.width ?? null,
+              logoHeight: logo?.height ?? null,
+            };
+      const saved = await deps.settings.update({ ...values, ...logoFields });
 
       // Delete the replaced or removed logo only once the new row is saved.
       if (existing?.logoUrl && existing.logoUrl !== saved.logoUrl) {

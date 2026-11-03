@@ -36,6 +36,13 @@
       "when": 1793180849863,
       "tag": "0004_documents",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1793704116022,
+      "tag": "0005_logo_size",
+      "breakpoints": true
     }
   ]
 }
