@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-import { cleanup, render, screen } from "@testing-library/react";
+import { cleanup, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { SignInForm, type SignInState } from "./SignInForm";
@@ -97,8 +97,12 @@ describe("SignInForm", () => {
     );
     await user.click(screen.getByRole("button", { name: "Sign in" }));
 
-    expect(await screen.findByLabelText("Email")).toHaveAccessibleDescription(
-      "Enter your email.",
+    // The field is there before the action resolves, so wait for the error itself:
+    // `findByLabelText` returned at once and lost the race under CI load.
+    await waitFor(() =>
+      expect(screen.getByLabelText("Email")).toHaveAccessibleDescription(
+        "Enter your email.",
+      ),
     );
     expect(screen.getByLabelText("Password")).toHaveAttribute(
       "aria-invalid",
