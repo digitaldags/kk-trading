@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
+import { FreshOnNavigation } from "@/components/admin/FreshOnNavigation";
 import { QuotationEditor } from "@/components/admin/QuotationEditor";
 import { QuotationView } from "@/components/admin/QuotationView";
 import { requireAdmin } from "@/lib/auth/requireAdmin";
@@ -42,19 +43,23 @@ export default async function QuotationPage({
       productService.listForAdmin(),
       categoryService.list(),
     ]);
+    // FreshOnNavigation: opening it again from a link shows what's saved, not edits
+    // left in the hidden instance from an earlier visit (BUG-01).
     return (
-      <QuotationEditor
-        // Remounts as the view once the status changes (completed or declined).
-        key={`${quotation.id}-${quotation.status}`}
-        quotation={quotation}
-        defaults={quotationService.newDraftDefaults()}
-        catalog={products}
-        categories={categories}
-        saveAction={saveQuotation}
-        completeAction={completeQuotation}
-        declineAction={declineQuotation}
-        deleteAction={deleteQuotation}
-      />
+      <FreshOnNavigation>
+        <QuotationEditor
+          // Remounts as the view once the status changes (completed or declined).
+          key={`${quotation.id}-${quotation.status}`}
+          quotation={quotation}
+          defaults={quotationService.newDraftDefaults()}
+          catalog={products}
+          categories={categories}
+          saveAction={saveQuotation}
+          completeAction={completeQuotation}
+          declineAction={declineQuotation}
+          deleteAction={deleteQuotation}
+        />
+      </FreshOnNavigation>
     );
   }
 
@@ -67,13 +72,15 @@ export default async function QuotationPage({
       : [null, []];
 
   return (
-    <QuotationView
-      key={`${quotation.id}-${quotation.status}`}
-      quotation={quotation}
-      receiptDefaults={defaults?.ok ? defaults.data : null}
-      receipts={receipts}
-      createReceiptAction={createDeliveryReceipt}
-      deleteReceiptAction={deleteDeliveryReceipt}
-    />
+    <FreshOnNavigation>
+      <QuotationView
+        key={`${quotation.id}-${quotation.status}`}
+        quotation={quotation}
+        receiptDefaults={defaults?.ok ? defaults.data : null}
+        receipts={receipts}
+        createReceiptAction={createDeliveryReceipt}
+        deleteReceiptAction={deleteDeliveryReceipt}
+      />
+    </FreshOnNavigation>
   );
 }

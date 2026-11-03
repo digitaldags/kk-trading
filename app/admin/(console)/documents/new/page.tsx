@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { FreshOnNavigation } from "@/components/admin/FreshOnNavigation";
 import { QuotationEditor } from "@/components/admin/QuotationEditor";
 import { requireAdmin } from "@/lib/auth/requireAdmin";
 import {
@@ -26,16 +27,19 @@ export default async function NewQuotationPage() {
     categoryService.list(),
   ]);
 
+  // A fresh editor on every visit, not the one hidden since the last save (BUG-01).
   return (
-    <QuotationEditor
-      quotation={null}
-      defaults={quotationService.newDraftDefaults()}
-      catalog={products}
-      categories={categories}
-      saveAction={saveQuotation}
-      completeAction={completeQuotation}
-      declineAction={declineQuotation}
-      deleteAction={deleteQuotation}
-    />
+    <FreshOnNavigation>
+      <QuotationEditor
+        quotation={null}
+        defaults={quotationService.newDraftDefaults()}
+        catalog={products}
+        categories={categories}
+        saveAction={saveQuotation}
+        completeAction={completeQuotation}
+        declineAction={declineQuotation}
+        deleteAction={deleteQuotation}
+      />
+    </FreshOnNavigation>
   );
 }

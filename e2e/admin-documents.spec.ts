@@ -18,6 +18,9 @@ const RUN = Date.now();
 const NUMBER = `E2E-${RUN}-1`;
 const DR1 = `E2E-${RUN}-DR1`;
 const DR2 = `E2E-${RUN}-DR2`;
+// Drafts for the BUG-01 test. Neither contains NUMBER, so searching for it finds one.
+const NUMBER_B = `E2E-${RUN}-B`;
+const NUMBER_C = `E2E-${RUN}-C`;
 
 // Seeded products that the dev branch also has. Their codes and catalog prices
 // differ between the two, so the spec sets the prices itself.
@@ -128,6 +131,65 @@ test("a new quotation adds products, takes edited prices and totals them", async
   await expect(snackbar(page, `Saved quotation ${NUMBER}.`)).toBeVisible();
   await expect(page).toHaveURL(/\/admin\/documents\/[0-9a-f-]{36}$/);
   quotationId = page.url().split("/").at(-1)!;
+});
+
+// BUG-01: Next keeps a page you leave alive (hidden in <Activity>), so New quotation
+// used to show the quotation just saved, and saving it updated that one.
+test("New quotation after a save opens an empty form and creates another", async ({
+  page,
+}) => {
+  const heading = (name: string) =>
+    page.getByRole("heading", { level: 1, name });
+  const numberField = page.getByLabel("Number", { exact: true });
+  const newQuotation = page
+    .getByRole("link", { name: "New quotation" })
+    .first();
+  const documentsTab = page
+    .getByRole("navigation", { name: "Admin sections" })
+    .getByRole("link", { name: "Documents" });
+
+  await page.goto("/admin/documents");
+  await newQuotation.click();
+  await expect(page).toHaveURL(/\/admin\/documents\/new$/);
+  await numberField.fill(NUMBER_B);
+  await page.getByLabel("Customer name").fill("E2E Customer B");
+  const input = await numberField.elementHandle();
+  const save = page.getByRole("button", { name: "Save", exact: true });
+  await save.click();
+  await expect(snackbar(page, `Saved quotation ${NUMBER_B}.`)).toBeVisible();
+  await expect(page).toHaveURL(/\/admin\/documents\/[0-9a-f-]{36}$/);
+  const idB = page.url().split("/").at(-1)!;
+  // The first save keeps the editor mounted (ticket 21): the same input is on screen.
+  await expect(heading(NUMBER_B)).toBeVisible();
+  expect(await input!.evaluate((node) => node.isConnected)).toBe(true);
+
+  await documentsTab.click();
+  await expect(page).toHaveURL(/\/admin\/documents$/);
+  await newQuotation.click();
+  await expect(page).toHaveURL(/\/admin\/documents\/new$/);
+  await expect(heading("New quotation")).toBeVisible();
+  await expect(numberField).toHaveValue("");
+  await expect(page.getByLabel("Customer name")).toHaveValue("");
+
+  // Back and Forward show the form that matches the URL.
+  await page.goBack();
+  await expect(page).toHaveURL(/\/admin\/documents$/);
+  await page.goForward();
+  await expect(page).toHaveURL(/\/admin\/documents\/new$/);
+  await expect(heading("New quotation")).toBeVisible();
+  await expect(numberField).toHaveValue("");
+
+  await numberField.fill(NUMBER_C);
+  await page.getByLabel("Customer name").fill("E2E Customer C");
+  await save.click();
+  await expect(snackbar(page, `Saved quotation ${NUMBER_C}.`)).toBeVisible();
+  await expect(page).toHaveURL(/\/admin\/documents\/[0-9a-f-]{36}$/);
+  expect(page.url().split("/").at(-1)).not.toBe(idB);
+
+  // B is unchanged.
+  await page.goto(`/admin/documents/${idB}`);
+  await expect(heading(NUMBER_B)).toBeVisible();
+  await expect(page.getByLabel("Customer name")).toHaveValue("E2E Customer B");
 });
 
 test("a second quotation can't take the same number in another case", async ({
