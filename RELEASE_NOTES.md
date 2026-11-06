@@ -2,11 +2,37 @@
 
 | Version    | Tagged      | Where                                                                             |
 | ---------- | ----------- | --------------------------------------------------------------------------------- |
+| [1.3](#13) | Not tagged  | `dev` only; goes live when `dev` merges to `main`                                 |
 | [1.2](#12) | 3 Nov 2026  | `dev` only; goes live when `dev` merges to `main`                                 |
 | [1.1](#11) | 31 Oct 2026 | `dev` only; goes live when `dev` merges to `main`                                 |
 | [1.0](#10) | 28 Oct 2026 | Live at [kk-trading.vercel.app](https://kk-trading.vercel.app/) since 23 Oct 2026 |
 
 Versions 1.1 and 1.2 go live together. See [Before 1.1 and 1.2 go live](#before-11-and-12-go-live).
+
+## 1.3
+
+6 November 2026, not tagged yet
+
+Product photos now show whole instead of being cropped, and a PNG that was cut off slightly before its end can be uploaded.
+
+### For shoppers
+
+- **Whole product photos.** Photos on product cards, the product dialog and product pages are no longer cropped to fill their frame. A photo that doesn't match the frame's shape has the frame's tint around it, and a photo with a white background shows as a white panel inside the frame. Existing photos change too, with nothing to re-upload.
+
+### For the store admin
+
+- **Whole photos in admin.** The product list, the Add product dialog, the photo preview in the product editor and quotation lines show the whole photo too. Printed quotations and receipts already did.
+
+### Fixed
+
+- **"That image couldn't be read" on a PNG** (BUG-02). A PNG cut off just before its end looked fine everywhere, but Upload Photo refused it. The photo now attaches and is saved as a clean copy. A file with more than 2% of its height missing is still refused, because it would show a blank area. SVG files stay refused too. The store logo keeps the stricter check, because a logo is uploaded as is.
+
+### Under the hood
+
+- No migration.
+- 635 unit and component tests; services at 99.4% line coverage.
+- New end-to-end tests: a cut-off PNG attaches, a mostly missing PNG is refused, and uploaded photos are shown whole.
+- The cut-off PNG fix was tested in Chromium only. A browser that's stricter about damaged images shows the same error as before.
 
 ## 1.2
 
@@ -154,6 +180,7 @@ Migrations don't run on deploy, so the database has to be ready before the code.
 
 | Date   | Version | What shipped                                                                                                            |
 | ------ | ------- | ----------------------------------------------------------------------------------------------------------------------- |
+| 6 Nov  | 1.3     | Whole product photos instead of cropped ones; a cut-off PNG can be uploaded                                             |
 | 3 Nov  | 1.2     | Store logo in the storefront header; New quotation always starts empty                                                  |
 | 31 Oct | 1.1     | Documents end-to-end and accessibility tests                                                                            |
 | 31 Oct | 1.1     | Print pages for quotations and delivery receipts                                                                        |

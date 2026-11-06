@@ -1,6 +1,6 @@
 import { execFileSync } from "node:child_process";
 import { expect, test, type Page } from "@playwright/test";
-import { codeFor, pngFile, publish } from "./helpers";
+import { codeFor, pngFile, publish, truncatedPngFile } from "./helpers";
 
 // The products admin against the Neon dev branch (and the Blob store in .env.local for
 // the photo test). Each run adds its own products (named with a timestamp) and deletes
@@ -19,6 +19,7 @@ test.describe.configure({ mode: "serial" });
 const RUN = Date.now();
 const NAME = `E2E product ${RUN}`;
 const RENAMED = `${NAME} v2`;
+const UNREADABLE = "That image couldn't be read. Try a JPG or PNG.";
 
 async function signIn(page: Page) {
   await page.goto("/admin/login?next=%2Fadmin");
@@ -148,6 +149,11 @@ test("a photo uploads to Blob and shows on the store", async ({ page }) => {
     "src",
     /public\.blob\.vercel-storage\.com/,
   );
+  // Shown whole, never cropped (BUG-02).
+  await expect(row(page, NAME).locator("img")).toHaveCSS(
+    "object-fit",
+    "contain",
+  );
 
   await publish(page);
   await page.goto(`/?q=${encodeURIComponent(NAME)}`);
@@ -157,6 +163,39 @@ test("a photo uploads to Blob and shows on the store", async ({ page }) => {
     "src",
     /public\.blob\.vercel-storage\.com/,
   );
+  await expect(card.locator("img")).toHaveCSS("object-fit", "contain");
+});
+
+test("a PNG that stops just short of its end still attaches", async ({
+  page,
+}) => {
+  await row(page, NAME)
+    .getByRole("button", { name: `Edit ${NAME}` })
+    .click();
+  const dialog = page.getByRole("dialog", { name: "Edit product" });
+  await dialog
+    .locator('input[type="file"]')
+    .setInputFiles(await truncatedPngFile(page, { keep: 0.995 }));
+  await expect(
+    dialog.getByRole("img", { name: "Product photo" }),
+  ).toBeVisible();
+  await expect(dialog.getByText(UNREADABLE)).toBeHidden();
+  await dialog.getByRole("button", { name: "Cancel" }).click();
+  await page.getByRole("button", { name: "Discard changes" }).click();
+  await expect(dialog).toBeHidden();
+});
+
+test("a PNG with most of it missing is refused", async ({ page }) => {
+  await row(page, NAME)
+    .getByRole("button", { name: `Edit ${NAME}` })
+    .click();
+  const dialog = page.getByRole("dialog", { name: "Edit product" });
+  await dialog
+    .locator('input[type="file"]')
+    .setInputFiles(await truncatedPngFile(page, { keep: 0.25 }));
+  await expect(dialog.getByText(UNREADABLE)).toBeVisible();
+  await dialog.getByRole("button", { name: "Cancel" }).click();
+  await expect(dialog).toBeHidden();
 });
 
 test("an invalid price keeps the editor open with the error on Price", async ({

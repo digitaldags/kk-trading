@@ -54,6 +54,34 @@ export async function pngFile(
   };
 }
 
+/**
+ * A PNG that stops early, like the file in BUG-02. The picture is noise, so its bytes are
+ * spread evenly over its rows and `keep` is roughly the share of rows that survive.
+ */
+export async function truncatedPngFile(
+  page: Page,
+  { keep, name = "cut-off.png" }: { keep: number; name?: string },
+) {
+  const dataUrl = await page.evaluate(() => {
+    const canvas = document.createElement("canvas");
+    canvas.width = 200;
+    canvas.height = 400;
+    const context = canvas.getContext("2d")!;
+    const pixels = context.createImageData(200, 400);
+    for (let i = 0; i < pixels.data.length; i++) {
+      pixels.data[i] = i % 4 === 3 ? 255 : Math.floor(Math.random() * 256);
+    }
+    context.putImageData(pixels, 0, 0);
+    return canvas.toDataURL("image/png");
+  });
+  const buffer = Buffer.from(dataUrl.split(",")[1]!, "base64");
+  return {
+    name,
+    mimeType: "image/png",
+    buffer: buffer.subarray(0, Math.floor(buffer.length * keep)),
+  };
+}
+
 /** Runs a script under scripts/ with tsx, as the admin specs do, and returns its output. */
 export function runScript(script: string, ...args: string[]): string {
   return execFileSync(
