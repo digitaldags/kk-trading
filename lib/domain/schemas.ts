@@ -2,6 +2,7 @@ import { z } from "zod";
 import { CATEGORY_ICONS } from "./icons";
 import { MAX_LOGO_SIDE } from "./logo";
 import { parsePriceToCentavos } from "./price";
+import { MAX_IMPORT_ROWS } from "./productImport";
 import { STOCK_STATUSES } from "./stock";
 import { UOMS } from "./uom";
 
@@ -90,6 +91,42 @@ export const productInputSchema = z.object({
 
 export type ProductInput = z.input<typeof productInputSchema>;
 export type ProductValues = z.output<typeof productInputSchema>;
+
+// The product import (ticket 41). Each row's real checks run in productImportService, so
+// one bad row doesn't hide the others. This only proves the action got rows of text.
+
+/** Only a forged or out-of-date request gets this: the browser always sends strings. */
+export const IMPORT_RELOAD = "Reload the page and try again.";
+
+const importCell = z.string(IMPORT_RELOAD);
+
+export const importBatchSchema = z.object({
+  rows: z
+    .array(
+      z.object(
+        {
+          code: importCell,
+          name: importCell,
+          category: importCell,
+          unit: importCell,
+          price: importCell,
+          stockStatus: importCell,
+          keySpec: importCell,
+          description: importCell,
+          specs: importCell,
+        },
+        IMPORT_RELOAD,
+      ),
+      IMPORT_RELOAD,
+    )
+    .min(1, "The file has no products.")
+    .max(
+      MAX_IMPORT_ROWS,
+      `Import up to ${MAX_IMPORT_ROWS} products at a time.`,
+    ),
+  /** The Excel row of each entry, for messages. Without it, rows count from 2. */
+  rowNumbers: z.array(z.int().positive()).optional().catch(undefined),
+});
 
 export const categoryInputSchema = z.object({
   name: requiredText(40, "Enter a category name."),

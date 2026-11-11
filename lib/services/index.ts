@@ -14,6 +14,7 @@ import { createCategoryService } from "./categoryService";
 import { createDeliveryReceiptService } from "./deliveryReceiptService";
 import { vercelBlobImageStore } from "./imageStore";
 import { argon2Passwords } from "./passwords";
+import { createProductImportService } from "./productImportService";
 import { createProductService } from "./productService";
 import { createPublishService } from "./publishService";
 import { createQuotationService } from "./quotationService";
@@ -35,6 +36,12 @@ export const productService = createProductService({
   products: productRepo,
   categories: categoryRepo,
   imageStore: vercelBlobImageStore,
+});
+
+/** The Excel import (ticket 41). It adds to the live tables, which are the draft. */
+export const productImportService = createProductImportService({
+  products: productRepo,
+  categories: categoryRepo,
 });
 
 export const categoryService = createCategoryService({

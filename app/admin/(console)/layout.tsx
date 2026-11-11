@@ -4,10 +4,10 @@ import { PublishBar } from "@/components/admin/PublishBar";
 import { SnackbarProvider } from "@/components/ui/Snackbar";
 import { cx } from "@/components/ui/shared/cx";
 import { getOptionalAdmin } from "@/lib/auth/requireAdmin";
-import { publishService } from "@/lib/services";
 import { signOut } from "../actions";
 import { discardChanges, publish } from "./actions";
 import styles from "./layout.module.css";
+import { getPublishStatus } from "./publishStatus";
 
 // The signed-in admin: app bar (with the publish status), section tabs, the Publish bar
 // and one snackbar for every page. This isn't the auth check (layouts don't re-run on
@@ -20,7 +20,7 @@ export default async function ConsoleLayout({
   // The session cookie first, so the build never prerenders the status read.
   const admin = await getOptionalAdmin();
   const unpublished = admin
-    ? (await publishService.status()).unpublished
+    ? (await getPublishStatus()).unpublished
     : undefined;
 
   return (

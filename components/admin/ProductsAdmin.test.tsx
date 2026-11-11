@@ -9,6 +9,8 @@ import {
 } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { SnackbarProvider } from "@/components/ui/Snackbar";
+import { buildExport } from "@/lib/spreadsheet/buildExport";
+import { downloadBlob } from "./downloadBlob";
 import {
   ProductsAdmin,
   SEARCH_DEBOUNCE_MS,
@@ -19,6 +21,8 @@ import { adminProduct, GYM, OFFICE } from "./testing/fixtures";
 const replace = vi.fn();
 const push = vi.fn();
 vi.mock("next/navigation", () => ({ useRouter: () => ({ replace, push }) }));
+vi.mock("@/lib/spreadsheet/buildExport", () => ({ buildExport: vi.fn() }));
+vi.mock("./downloadBlob", () => ({ downloadBlob: vi.fn() }));
 
 const CHAIR = adminProduct({ isSample: true });
 const BENCH = adminProduct({
@@ -41,6 +45,10 @@ function renderAdmin(props: Partial<ProductsAdminProps> = {}) {
     deleteAction: vi.fn(async () => ({ ok: true, message: "Deleted." })),
     saveAction: vi.fn(),
     discardUploadAction: vi.fn(),
+    hasUnpublishedChanges: false,
+    previewImportAction: vi.fn(),
+    importAction: vi.fn(),
+    exportAction: vi.fn(),
     ...props,
   };
   render(
@@ -63,6 +71,91 @@ beforeEach(() => {
 afterEach(() => {
   cleanup();
   vi.useRealTimers();
+});
+
+describe("Import and Export", () => {
+  const EXPORT = {
+    products: [],
+    categories: [{ name: "Office equipment" }],
+  };
+
+  beforeEach(() => {
+    vi.mocked(buildExport).mockReset();
+    vi.mocked(downloadBlob).mockReset();
+  });
+
+  it("opens the import dialog, and warns of unpublished changes when there are some", () => {
+    renderAdmin({ hasUnpublishedChanges: true });
+    expect(screen.queryByLabelText("Excel file (.xlsx)")).toBeNull();
+
+    fireEvent.click(screen.getByRole("button", { name: "Import" }));
+
+    expect(screen.getByLabelText("Excel file (.xlsx)")).toBeVisible();
+    expect(screen.getByText(/You have unpublished changes/)).toBeVisible();
+  });
+
+  it("closes the import dialog again", () => {
+    renderAdmin();
+    fireEvent.click(screen.getByRole("button", { name: "Import" }));
+    fireEvent.click(screen.getByRole("button", { name: "Close" }));
+    expect(screen.queryByLabelText("Excel file (.xlsx)")).toBeNull();
+  });
+
+  it("builds the export from the action, not the page's filtered list, and downloads it", async () => {
+    const file = new Blob(["xlsx"]);
+    vi.mocked(buildExport).mockResolvedValue(file);
+    const exportAction = vi.fn(async () => EXPORT);
+    renderAdmin({ exportAction, q: "chair", products: [CHAIR] });
+
+    fireEvent.click(screen.getByRole("button", { name: "Export" }));
+
+    await vi.waitFor(() => expect(downloadBlob).toHaveBeenCalled());
+    expect(exportAction).toHaveBeenCalledWith();
+    expect(buildExport).toHaveBeenCalledWith(
+      EXPORT.products,
+      EXPORT.categories,
+    );
+    expect(downloadBlob).toHaveBeenCalledWith(
+      file,
+      expect.stringMatching(/^kk-trading-products-\d{4}-\d{2}-\d{2}\.xlsx$/),
+    );
+  });
+
+  it("disables Export while it runs", async () => {
+    let finish!: (value: typeof EXPORT) => void;
+    const exportAction = vi.fn(
+      () =>
+        new Promise<typeof EXPORT>((resolve) => {
+          finish = resolve;
+        }),
+    );
+    renderAdmin({ exportAction });
+
+    fireEvent.click(screen.getByRole("button", { name: "Export" }));
+    await vi.waitFor(() =>
+      expect(screen.getByRole("button", { name: "Export" })).toBeDisabled(),
+    );
+
+    await act(async () => finish(EXPORT));
+    expect(screen.getByRole("button", { name: "Export" })).toBeEnabled();
+  });
+
+  it("says so when the export fails", async () => {
+    renderAdmin({
+      exportAction: vi.fn(async () => {
+        throw new Error("Network");
+      }),
+    });
+
+    fireEvent.click(screen.getByRole("button", { name: "Export" }));
+
+    await vi.waitFor(() =>
+      expect(snackbar()).toHaveTextContent(
+        "Couldn't export the products. Try again.",
+      ),
+    );
+    expect(downloadBlob).not.toHaveBeenCalled();
+  });
 });
 
 describe("ProductsAdmin", () => {

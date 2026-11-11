@@ -23,6 +23,10 @@ const nextConfig: NextConfig = {
     // `unauthorized()`: requireAdmin() answers admin pages and actions without a
     // session with a 401 (lib/auth/requireAdmin.ts).
     authInterrupts: true,
+    // The product import sends up to 500 rows of text (ticket 41): about 1 MB at full
+    // length, and up to 3 MB in scripts that take more bytes per character. The default
+    // is 1 MB. Keep it under Vercel's 4.5 MB request limit.
+    serverActions: { bodySizeLimit: "3mb" },
     // serverActions.allowedOrigins is deliberately unset. Next.js rejects a server
     // action whose Origin doesn't match the Host (CSRF). The site is served by Vercel
     // only (its own and custom domains), so they always match. The setting is only for

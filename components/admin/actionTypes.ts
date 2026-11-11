@@ -1,4 +1,11 @@
-import type { FieldErrors } from "@/lib/domain/result";
+import type {
+  ImportCommit,
+  ImportErrorKey,
+  ImportPreview,
+  ImportRowInput,
+  ProductsExport,
+} from "@/lib/domain/productImport";
+import type { FieldErrors, ServiceResult } from "@/lib/domain/result";
 import type {
   CategoryInput,
   DeliveryReceiptInput,
@@ -30,6 +37,21 @@ export type SaveProductAction = (
   input: SaveProductInput,
 ) => Promise<SaveProductResult>;
 export type DiscardUploadAction = (url: string) => Promise<void>;
+
+export type PreviewImportResult = ServiceResult<ImportPreview, ImportErrorKey>;
+export type ImportProductsResult = ServiceResult<ImportCommit, ImportErrorKey>;
+
+/** `rowNumbers[i]` is the Excel row of `rows[i]`, so messages can name the row. */
+export type PreviewImportAction = (
+  rows: ImportRowInput[],
+  rowNumbers: number[],
+) => Promise<PreviewImportResult>;
+export type ImportProductsAction = (
+  rows: ImportRowInput[],
+  rowNumbers: number[],
+) => Promise<ImportProductsResult>;
+
+export type GetProductsForExportAction = () => Promise<ProductsExport>;
 
 /** A save that can come back with errors for each field, or a message for the snackbar. */
 export type SaveResult<F extends string> =

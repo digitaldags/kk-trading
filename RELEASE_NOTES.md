@@ -2,16 +2,45 @@
 
 | Version    | Tagged      | Where                                                                             |
 | ---------- | ----------- | --------------------------------------------------------------------------------- |
-| [1.3](#13) | Not tagged  | `dev` only; goes live when `dev` merges to `main`                                 |
-| [1.2](#12) | 3 Nov 2026  | `dev` only; goes live when `dev` merges to `main`                                 |
-| [1.1](#11) | 31 Oct 2026 | `dev` only; goes live when `dev` merges to `main`                                 |
+| [1.4](#14) | Not tagged  | `feature/batch-import`; not merged into `dev` yet                                 |
+| [1.3](#13) | 6 Nov 2026  | On `main` since 6 Nov 2026 (PR #7)                                                |
+| [1.2](#12) | 3 Nov 2026  | On `main` since 3 Nov 2026 (PR #6)                                                |
+| [1.1](#11) | 31 Oct 2026 | On `main` since 3 Nov 2026 (PR #6)                                                |
 | [1.0](#10) | 28 Oct 2026 | Live at [kk-trading.vercel.app](https://kk-trading.vercel.app/) since 23 Oct 2026 |
 
-Versions 1.1 and 1.2 go live together. See [Before 1.1 and 1.2 go live](#before-11-and-12-go-live).
+Versions 1.1 and 1.2 went to `main` together. See [Before 1.1 and 1.2 go live](#before-11-and-12-go-live) for the production steps still to confirm.
+
+## 1.4
+
+11 November 2026, not tagged yet
+
+Admin can now add many products at once from an Excel file, and download the whole catalog in the same format.
+
+### For the store admin
+
+- **Import products from Excel.** On the Products tab, Import opens a dialog. Download the template, fill in one row per product and choose the file. Columns: Code, Name, Category, Unit, Price, Stock status, Key spec, Description and Specifications (one spec per line in the cell).
+- **The template helps.** Category, Unit and Stock status have dropdowns, the Code column is text so codes like `0012` keep their zeros, and an Instructions sheet explains each column. Prices can be typed as `8950`, `8,950` or `₱8,950.50`.
+- **Preview first.** Before anything is saved, the dialog says how many products will be added and how many already exist and will be skipped. Import then adds exactly those.
+- **All or nothing.** If any row has a problem, nothing is imported. Every problem is listed at once, with its Excel row number and column, such as "Row 7, Price: Enter a price of 0 or more, numbers only."
+- **Import only adds products.** It never changes or deletes one. A row whose code already exists with different values is refused and points you to the product editor. A row that matches an existing product exactly is skipped, so importing the same file twice is harmless.
+- **Export the catalog.** Export downloads every product in the template's columns. Add new rows at the bottom and import the file again: only the new rows are added.
+- **Imported products are drafts,** like any other edit. The storefront shows them after Publish, and Discard removes them.
+- **Limits:** `.xlsx` files only, up to 500 products and 2 MB per file. Every product needs a code that no other product uses, ignoring case. Categories must already exist; an import never creates one. Photos are added in the product editor afterwards.
+- **A catalog over 500 products** exports fine but is too long to import again. Import a file of just the new rows instead.
+
+### Under the hood
+
+- No migration and no new environment variable.
+- The browser reads the file, and only the rows are sent to the server, which checks every row again when you click Import. New products are written in a single database statement, so they're all added or none are.
+- The spreadsheet library (exceljs 4.4.0) loads only when a file is read or a template is built, never on the storefront or on opening the admin.
+- Server actions accept up to 3 MB, enough for 500 full-length rows.
+- 799 unit and component tests; the import service at 100% line coverage.
+- New end-to-end tests cover errors blocking the whole file, importing exactly the new rows, re-importing as a no-op, a changed row being refused, and export then import. Accessibility scans cover the import dialog at desktop and phone sizes.
+- The template was checked by re-saving it in LibreOffice. It hasn't been opened in Excel by hand yet, and the dialog was tested in Chromium only.
 
 ## 1.3
 
-6 November 2026, not tagged yet
+6 November 2026
 
 Product photos now show whole instead of being cropped, and a PNG that was cut off slightly before its end can be uploaded.
 
@@ -180,6 +209,7 @@ Migrations don't run on deploy, so the database has to be ready before the code.
 
 | Date   | Version | What shipped                                                                                                            |
 | ------ | ------- | ----------------------------------------------------------------------------------------------------------------------- |
+| 11 Nov | 1.4     | Product import and export from Excel                                                                                    |
 | 6 Nov  | 1.3     | Whole product photos instead of cropped ones; a cut-off PNG can be uploaded                                             |
 | 3 Nov  | 1.2     | Store logo in the storefront header; New quotation always starts empty                                                  |
 | 31 Oct | 1.1     | Documents end-to-end and accessibility tests                                                                            |

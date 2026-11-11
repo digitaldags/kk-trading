@@ -23,6 +23,7 @@ const UI_ICONS = [
   "content_copy",
   "delete",
   "description",
+  "download",
   "edit",
   "edit_note",
   "error",
@@ -42,6 +43,7 @@ const UI_ICONS = [
   "search_off",
   "storefront",
   "task_alt",
+  "upload_file",
   "warning",
 ] as const;
 

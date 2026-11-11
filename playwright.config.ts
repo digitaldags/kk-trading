@@ -17,6 +17,7 @@ const BOTH_VIEWPORTS = ["flows", "a11y"];
 const ADMIN_WRITES = [
   "admin-products",
   "admin-categories",
+  "admin-import",
   "admin-publish",
   "admin-settings",
   "admin-print",
