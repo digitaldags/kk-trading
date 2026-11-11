@@ -1,23 +1,32 @@
 /**
- * A Postgres error's code, constraint and message. Drizzle wraps the driver's error in
- * `cause`.
+ * A Postgres error's code, constraint, message and detail. Drizzle wraps the driver's
+ * error in `cause`.
  */
-export function pgError(
-  error: unknown,
-): { code?: string; constraint?: string; message?: string } | null {
+export function pgError(error: unknown): {
+  code?: string;
+  constraint?: string;
+  message?: string;
+  detail?: string;
+} | null {
   if (typeof error !== "object" || error === null) return null;
   const cause = (error as { cause?: unknown }).cause;
   const source = (
     typeof cause === "object" && cause !== null && "code" in cause
       ? cause
       : error
-  ) as { code?: unknown; constraint?: unknown; message?: unknown };
+  ) as {
+    code?: unknown;
+    constraint?: unknown;
+    message?: unknown;
+    detail?: unknown;
+  };
   if (typeof source.code !== "string") return null;
   return {
     code: source.code,
     constraint:
       typeof source.constraint === "string" ? source.constraint : undefined,
     message: typeof source.message === "string" ? source.message : undefined,
+    detail: typeof source.detail === "string" ? source.detail : undefined,
   };
 }
 

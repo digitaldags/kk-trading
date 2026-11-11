@@ -74,7 +74,7 @@ export function createFakeStore() {
     const taken = [...products.values()].some(
       (p) => p.id !== exceptId && p.code.toLowerCase() === code.toLowerCase(),
     );
-    if (taken) throw new ProductCodeTakenError();
+    if (taken) throw new ProductCodeTakenError(code);
   }
 
   const categoryRepo: CategoryRepo = {
@@ -218,6 +218,29 @@ export function createFakeStore() {
       };
       products.set(product.id, product);
       return product;
+    },
+    async insertMany(values) {
+      maybeFail();
+      // Every row is checked first, so a refused one inserts none.
+      const seen = new Set<string>();
+      for (const { code } of values) {
+        checkCode(code);
+        if (code && seen.has(code.toLowerCase())) {
+          throw new ProductCodeTakenError(code);
+        }
+        seen.add(code.toLowerCase());
+      }
+      const now = new Date();
+      return values.map((value) => {
+        const product = {
+          ...value,
+          id: newId(),
+          createdAt: now,
+          updatedAt: now,
+        };
+        products.set(product.id, product);
+        return product;
+      });
     },
     async update(id, patch) {
       maybeFail();

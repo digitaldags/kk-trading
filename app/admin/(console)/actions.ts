@@ -3,13 +3,24 @@
 import { refresh, updateTag } from "next/cache";
 import type {
   ActionMessage,
+  ImportProductsResult,
+  PreviewImportResult,
   SaveProductInput,
   SaveProductResult,
 } from "@/components/admin/actionTypes";
 import { requireAdmin } from "@/lib/auth/requireAdmin";
 import { CATALOG_TAG, SETTINGS_TAG } from "@/lib/cacheTags";
+import type {
+  ImportRowInput,
+  ProductsExport,
+} from "@/lib/domain/productImport";
 import { PRODUCT_NOT_FOUND } from "@/lib/domain/schemas";
-import { productService, publishService } from "@/lib/services";
+import {
+  categoryService,
+  productImportService,
+  productService,
+  publishService,
+} from "@/lib/services";
 import { NOTHING_PUBLISHED } from "@/lib/services/publishService";
 
 // Every admin action starts with `await requireAdmin()` (see ../actions-guard.test.ts).
@@ -51,6 +62,47 @@ export async function saveProduct(
 export async function discardUpload(url: string): Promise<void> {
   await requireAdmin();
   await productService.discardUnusedImage(String(url));
+}
+
+/** What an Excel import would do (ticket 41). Writes nothing. */
+export async function previewProductImport(
+  rows: ImportRowInput[],
+  rowNumbers?: number[],
+): Promise<PreviewImportResult> {
+  await requireAdmin();
+  return productImportService.preview(rows, rowNumbers);
+}
+
+/** Adds the file's new products to the draft. The dialog refreshes the page afterwards. */
+export async function importProducts(
+  rows: ImportRowInput[],
+  rowNumbers?: number[],
+): Promise<ImportProductsResult> {
+  await requireAdmin();
+  return productImportService.commit(rows, rowNumbers);
+}
+
+/** The whole catalog for the Excel export, whatever the page's search says. */
+export async function getProductsForExport(): Promise<ProductsExport> {
+  await requireAdmin();
+  const [{ products }, categories] = await Promise.all([
+    productService.listForAdmin(),
+    categoryService.list(),
+  ]);
+  return {
+    products: products.map((product) => ({
+      code: product.code,
+      name: product.name,
+      category: product.category.name,
+      unit: product.uom,
+      priceCentavos: product.priceCentavos,
+      stockStatus: product.stockStatus,
+      keySpec: product.keySpec,
+      description: product.description,
+      specs: product.specs,
+    })),
+    categories: categories.map(({ name }) => ({ name })),
+  };
 }
 
 /** Makes the draft live: the storefront's cached reads expire, so `/` shows it next load. */

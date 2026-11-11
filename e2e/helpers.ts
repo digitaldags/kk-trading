@@ -1,5 +1,10 @@
 import { execFileSync } from "node:child_process";
-import { expect, type Page } from "@playwright/test";
+import { expect, type Download, type Page } from "@playwright/test";
+import ExcelJS from "exceljs";
+import {
+  IMPORT_COLUMNS,
+  type ImportRowInput,
+} from "../lib/domain/productImport";
 
 // Shared by the admin specs.
 
@@ -80,6 +85,55 @@ export async function truncatedPngFile(
     mimeType: "image/png",
     buffer: buffer.subarray(0, Math.floor(buffer.length * keep)),
   };
+}
+
+/** One row for an import file (ticket 44). The name and code carry the "E2E" prefix. */
+export function importRow(
+  overrides: Partial<ImportRowInput> = {},
+): ImportRowInput {
+  return {
+    code: "",
+    name: "",
+    category: "",
+    unit: "pcs",
+    price: "100",
+    stockStatus: "In stock",
+    keySpec: "",
+    description: "",
+    specs: "",
+    ...overrides,
+  };
+}
+
+/** A workbook as Playwright's `setInputFiles` takes it. */
+export async function workbookFile(
+  workbook: ExcelJS.Workbook,
+  name = "products.xlsx",
+) {
+  return {
+    name,
+    mimeType:
+      "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+    buffer: Buffer.from(await workbook.xlsx.writeBuffer()),
+  };
+}
+
+/** An import file with these rows, built with the same library as the app. */
+export async function productsWorkbookFile(rows: ImportRowInput[]) {
+  const workbook = new ExcelJS.Workbook();
+  const sheet = workbook.addWorksheet("Products");
+  sheet.addRow(IMPORT_COLUMNS.map((column) => column.header));
+  for (const row of rows) {
+    sheet.addRow(IMPORT_COLUMNS.map((column) => row[column.key]));
+  }
+  return workbookFile(workbook);
+}
+
+/** Opens a file the app downloaded. */
+export async function downloadedWorkbook(download: Download) {
+  const workbook = new ExcelJS.Workbook();
+  await workbook.xlsx.readFile(await download.path());
+  return workbook;
 }
 
 /** Runs a script under scripts/ with tsx, as the admin specs do, and returns its output. */
