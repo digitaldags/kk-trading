@@ -1,0 +1,104 @@
+/* Import products (ticket 43). No Figma frame: built from the shared dialog's patterns. */
+
+.content {
+  display: grid;
+  gap: 16px;
+}
+
+.text {
+  margin: 0;
+}
+
+.heading {
+  margin: 0;
+  color: var(--on-surface);
+}
+
+.heading:focus {
+  outline: none;
+}
+
+.field {
+  display: grid;
+  gap: 6px;
+  min-width: 0;
+}
+
+.label,
+.hint {
+  margin: 0;
+  color: var(--on-surface-var);
+}
+
+.fileInput {
+  min-width: 0;
+  max-width: 100%;
+  color: var(--on-surface);
+}
+
+.fileInput:focus-visible {
+  outline: 2px solid var(--primary);
+  outline-offset: 2px;
+}
+
+.alert {
+  margin: 0;
+  color: var(--err);
+}
+
+.alert:focus {
+  outline: none;
+}
+
+.scroller {
+  max-height: 280px;
+  overflow: auto;
+  border: 1px solid var(--outline-var);
+  border-radius: var(--r-md);
+}
+
+.scroller:focus-visible {
+  outline: 2px solid var(--primary);
+  outline-offset: 2px;
+}
+
+.list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.product {
+  display: grid;
+  grid-template-columns: minmax(0, 2fr) minmax(0, 3fr);
+  gap: 12px;
+  padding: 8px 12px;
+}
+
+.product + .product,
+.problem + .problem {
+  border-top: 1px solid var(--outline-var);
+}
+
+.code {
+  overflow-wrap: anywhere;
+  color: var(--on-surface-var);
+}
+
+.problem {
+  display: grid;
+  gap: 4px;
+  padding: 8px 12px;
+}
+
+.line {
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+
+.more {
+  margin: 0;
+  padding: 8px 12px;
+  border-top: 1px solid var(--outline-var);
+  color: var(--on-surface-var);
+}

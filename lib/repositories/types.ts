@@ -76,6 +76,11 @@ export interface ProductRepo {
   maxSortOrder(): Promise<number>;
   /** Throws `ProductCodeTakenError` when the unique code index refuses it. */
   insert(values: NewProduct): Promise<Product>;
+  /**
+   * All the rows or none, in order. Throws `ProductCodeTakenError`, with the code, when
+   * the unique code index refuses one.
+   */
+  insertMany(values: NewProduct[]): Promise<Product[]>;
   /** Throws `ProductCodeTakenError` when the unique code index refuses it. */
   update(id: string, patch: ProductPatch): Promise<Product | null>;
   /** Returns the deleted product, or null if it didn't exist. */

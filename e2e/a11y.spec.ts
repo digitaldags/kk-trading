@@ -1,6 +1,12 @@
 import AxeBuilder from "@axe-core/playwright";
 import { expect, test, type Page } from "@playwright/test";
-import { cleanUpE2eDocuments, seedDocuments } from "./helpers";
+import {
+  cleanUpE2eDocuments,
+  downloadedWorkbook,
+  importRow,
+  productsWorkbookFile,
+  seedDocuments,
+} from "./helpers";
 
 // Axe scans (ticket 14) of the storefront and admin, run at 1440×900 and 390×844 (the
 // flows-desktop and flows-mobile projects). Serious and critical violations fail;
@@ -102,6 +108,70 @@ test("the admin pages and editors", async ({ page }) => {
   await page.getByRole("button", { name: "Add product" }).click();
   await expect(page.getByRole("dialog", { name: "Add product" })).toBeVisible();
   await scan(page, "add product dialog");
+});
+
+// Ticket 44. The files are built inside the test, and it only previews them, so nothing
+// is written and nothing needs cleaning up.
+test("the product import dialog", async ({ page }) => {
+  await signIn(page);
+  await scan(page, "/admin with Import and Export");
+
+  await page.getByRole("button", { name: "Import", exact: true }).click();
+  const dialog = page.getByRole("dialog", { name: "Import products" });
+  const file = dialog.getByLabel("Excel file (.xlsx)");
+  await expect(file).toBeVisible();
+  await scan(page, "import dialog: choose a file");
+
+  const [download] = await Promise.all([
+    page.waitForEvent("download"),
+    dialog.getByRole("button", { name: "Download template" }).click(),
+  ]);
+  const lists = (await downloadedWorkbook(download)).getWorksheet("Lists")!;
+  const category = String(lists.getCell("A2").value);
+
+  const run = Date.now();
+  await file.setInputFiles(
+    await productsWorkbookFile([
+      importRow({
+        code: `E2E-${run}-1`,
+        name: `E2E product ${run} 1`,
+        category,
+      }),
+    ]),
+  );
+  await expect(dialog.getByRole("heading", { name: "Preview" })).toBeVisible();
+  await scan(page, "import dialog: preview");
+
+  await dialog.getByRole("button", { name: "Choose another file" }).click();
+  await file.setInputFiles(
+    await productsWorkbookFile([
+      importRow({
+        code: `E2E-${run}-2`,
+        name: "",
+        category: "No such category",
+      }),
+    ]),
+  );
+  const problems = dialog.getByRole("heading", {
+    name: "Problems in this file",
+  });
+  await expect(problems).toBeVisible();
+  await scan(page, "import dialog: problems");
+
+  await dialog.getByRole("button", { name: "Choose another file" }).click();
+  await file.setInputFiles(
+    await productsWorkbookFile(
+      Array.from({ length: 60 }, (_, i) =>
+        importRow({
+          code: `E2E-${run}-${i + 3}`,
+          name: `E2E product ${run} ${i + 3}`,
+          category: "No such category",
+        }),
+      ),
+    ),
+  );
+  await expect(dialog.getByText("and 10 more rows.")).toBeVisible();
+  await scan(page, "import dialog: long list of problems");
 });
 
 // Ticket 24. Seeded and cleaned up inside the test: a beforeAll would run once per

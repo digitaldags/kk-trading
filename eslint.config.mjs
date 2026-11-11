@@ -10,6 +10,9 @@ const SCHEMA_IMPORTS = {
     "Only repositories use the Drizzle tables. Add a repository method instead.",
 };
 
+const EXCELJS_MESSAGE =
+  "Only lib/spreadsheet loads exceljs. Call a function from there instead.";
+
 const eslintConfig = defineConfig([
   ...nextVitals,
   ...nextTs,
@@ -59,6 +62,26 @@ const eslintConfig = defineConfig([
               message: "Call a service from lib/services instead.",
             },
           ],
+        },
+      ],
+    },
+  },
+  // exceljs is large and only for the browser's file work, so only lib/spreadsheet loads
+  // it (ticket 42). e2e builds and reads workbooks to check that layer from outside.
+  // no-restricted-imports can't do this: it doesn't see `import()`, the way it's loaded.
+  {
+    files: ["**/*.{ts,tsx,mts}"],
+    ignores: ["lib/spreadsheet/**", "e2e/**"],
+    rules: {
+      "no-restricted-syntax": [
+        "error",
+        {
+          selector: "ImportDeclaration[source.value='exceljs']",
+          message: EXCELJS_MESSAGE,
+        },
+        {
+          selector: "ImportExpression[source.value='exceljs']",
+          message: EXCELJS_MESSAGE,
         },
       ],
     },

@@ -20,6 +20,7 @@
     "description",
     "desk",
     "directions_run",
+    "download",
     "edit",
     "edit_note",
     "error",
@@ -52,6 +53,7 @@
     "storefront",
     "table_restaurant",
     "task_alt",
+    "upload_file",
     "warning"
   ]
 }

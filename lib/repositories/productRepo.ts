@@ -4,22 +4,34 @@ import { queryRows } from "@/lib/db/publish";
 import { categories, products } from "@/lib/db/schema";
 import { ProductCodeTakenError } from "@/lib/domain/errors";
 import { escapeLike } from "./like";
-import { isUniqueViolation } from "./pgError";
-import type { ProductRepo } from "./types";
+import { isUniqueViolation, pgError } from "./pgError";
+import type { NewProduct, ProductRepo } from "./types";
 
 /**
  * The backstop for two saves racing for the same code: the service checks first, the
- * unique index decides. Anything else is rethrown as is.
+ * unique index decides. Anything else is rethrown as is. With `batch`, the error names
+ * the refused code as the batch spelled it.
  */
-async function guardCode<T>(write: () => Promise<T>): Promise<T> {
+async function guardCode<T>(
+  write: () => Promise<T>,
+  batch: NewProduct[] = [],
+): Promise<T> {
   try {
     return await write();
   } catch (error) {
     if (isUniqueViolation(error, "products_code_lower_idx")) {
-      throw new ProductCodeTakenError();
+      throw new ProductCodeTakenError(refusedCode(error, batch));
     }
     throw error;
   }
+}
+
+/** Postgres's detail reads `Key (lower(code))=(kk-001) already exists.` */
+function refusedCode(error: unknown, batch: NewProduct[]) {
+  const detail = pgError(error)?.detail ?? "";
+  const lower = /=\((.*)\) already exists/.exec(detail)?.[1];
+  if (lower === undefined) return undefined;
+  return batch.find((p) => p.code.toLowerCase() === lower)?.code ?? lower;
 }
 
 const productCategory = {
@@ -101,6 +113,16 @@ export function createProductRepo(db: Db): ProductRepo {
       );
       if (!row) throw new Error("Product insert returned no row.");
       return row;
+    },
+
+    // One statement is one transaction, so a refused row inserts none. atomic() can't
+    // return rows.
+    async insertMany(values) {
+      if (values.length === 0) return [];
+      return guardCode(
+        () => db.insert(products).values(values).returning(),
+        values,
+      );
     },
 
     async update(id, patch) {

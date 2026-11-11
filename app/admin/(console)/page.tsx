@@ -2,7 +2,15 @@ import type { Metadata } from "next";
 import { ProductsAdmin } from "@/components/admin/ProductsAdmin";
 import { requireAdmin } from "@/lib/auth/requireAdmin";
 import { categoryService, productService } from "@/lib/services";
-import { deleteProduct, discardUpload, saveProduct } from "./actions";
+import {
+  deleteProduct,
+  discardUpload,
+  getProductsForExport,
+  importProducts,
+  previewProductImport,
+  saveProduct,
+} from "./actions";
+import { getPublishStatus } from "./publishStatus";
 
 // Reads the session cookie, so it renders per request and blocks until it's checked.
 export const instant = false;
@@ -27,10 +35,11 @@ export default async function ProductsPage({
   const editId = first(params.edit);
   const adding = first(params.new) === "1";
 
-  const [list, categories, editing] = await Promise.all([
+  const [list, categories, editing, status] = await Promise.all([
     productService.listForAdmin({ q }),
     categoryService.list(),
     editId ? productService.get(editId) : null,
+    getPublishStatus(),
   ]);
 
   return (
@@ -49,6 +58,10 @@ export default async function ProductsPage({
       deleteAction={deleteProduct}
       saveAction={saveProduct}
       discardUploadAction={discardUpload}
+      hasUnpublishedChanges={status.unpublished}
+      previewImportAction={previewProductImport}
+      importAction={importProducts}
+      exportAction={getProductsForExport}
     />
   );
 }

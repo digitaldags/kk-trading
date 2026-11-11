@@ -17,6 +17,10 @@ import { ProductRow } from "@/components/ui/ProductRow";
 import { useSnackbar } from "@/components/ui/Snackbar";
 import { cx } from "@/components/ui/shared/cx";
 import { PRODUCT_NOT_FOUND } from "@/lib/domain/schemas";
+import { buildExport } from "@/lib/spreadsheet/buildExport";
+import { buildTemplate } from "@/lib/spreadsheet/buildTemplate";
+import { exportFileName } from "@/lib/spreadsheet/fileNames";
+import { readProductsFile } from "@/lib/spreadsheet/readProductsFile";
 import type {
   Category,
   Product,
@@ -25,10 +29,15 @@ import type {
 import type {
   DeleteProductAction,
   DiscardUploadAction,
+  GetProductsForExportAction,
+  ImportProductsAction,
+  PreviewImportAction,
   SaveProductAction,
 } from "./actionTypes";
 import { productsUrl } from "./adminUrl";
+import { downloadBlob } from "./downloadBlob";
 import emptyStyles from "./EmptyState.module.css";
+import { ImportProductsDialog } from "./ImportProductsDialog";
 import { ProductEditor } from "./ProductEditor";
 import styles from "./ProductsAdmin.module.css";
 
@@ -51,12 +60,18 @@ export type ProductsAdminProps = {
   deleteAction: DeleteProductAction;
   saveAction: SaveProductAction;
   discardUploadAction: DiscardUploadAction;
+  /** For the import dialog's warning: a Discard would remove imported products too. */
+  hasUnpublishedChanges: boolean;
+  previewImportAction: PreviewImportAction;
+  importAction: ImportProductsAction;
+  exportAction: GetProductsForExportAction;
 };
 
 /**
  * The Products tab (Figma 12:301): sample banner, search, Add product, the list, the
  * delete confirmation (12:761) and the editor (12:509). Search is a plain GET form that
- * updates the URL in place with JavaScript, like the storefront's.
+ * updates the URL in place with JavaScript, like the storefront's. Import and Export
+ * (ticket 43) work on Excel files in the browser; the spreadsheet library loads on use.
  */
 export function ProductsAdmin({
   products,
@@ -69,11 +84,17 @@ export function ProductsAdmin({
   deleteAction,
   saveAction,
   discardUploadAction,
+  hasUnpublishedChanges,
+  previewImportAction,
+  importAction,
+  exportAction,
 }: ProductsAdminProps) {
   const router = useRouter();
   const snackbar = useSnackbar();
   const [searching, startSearch] = useTransition();
   const [deleting, startDelete] = useTransition();
+  const [exporting, startExport] = useTransition();
+  const [importOpen, setImportOpen] = useState(false);
   const [toDelete, setToDelete] = useState<ProductWithCategory | null>(null);
   const searchId = useId();
   const inputRef = useRef<HTMLInputElement>(null);
@@ -163,6 +184,18 @@ export function ProductsAdmin({
     });
   }
 
+  function exportProducts() {
+    startExport(async () => {
+      try {
+        const { products: rows, categories: names } = await exportAction();
+        const file = await buildExport(rows, names);
+        downloadBlob(file, exportFileName(new Date()));
+      } catch {
+        snackbar.show("Couldn't export the products. Try again.");
+      }
+    });
+  }
+
   return (
     <>
       <h1 className="visually-hidden">Products</h1>
@@ -198,6 +231,21 @@ export function ProductsAdmin({
             onChange={(event) => handleSearchInput(event.target.value)}
           />
         </form>
+        <Button
+          variant="outlined"
+          icon="upload_file"
+          onClick={() => setImportOpen(true)}
+        >
+          Import
+        </Button>
+        <Button
+          variant="outlined"
+          icon="download"
+          disabled={exporting}
+          onClick={exportProducts}
+        >
+          Export
+        </Button>
         <Button
           href={productsUrl({ q, isNew: true })}
           prefetch={false}
@@ -281,6 +329,17 @@ export function ProductsAdmin({
           It will be removed from the store when you publish.
         </p>
       </Dialog>
+
+      <ImportProductsDialog
+        open={importOpen}
+        categories={categories}
+        hasUnpublishedChanges={hasUnpublishedChanges}
+        previewAction={previewImportAction}
+        importAction={importAction}
+        readFile={readProductsFile}
+        buildTemplate={buildTemplate}
+        onClose={() => setImportOpen(false)}
+      />
 
       {editor && editorKey && (
         <ProductEditor
